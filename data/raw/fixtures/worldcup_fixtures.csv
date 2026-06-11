@@ -1,0 +1,73 @@
+match_id,date,stage,round,group,host_city,host_country,latitude,longitude,home_team,away_team
+GRP-A-M1,2026-06-11T19:00:00+00:00,group,group,A,Mexico City,Mexico,19.3029,-99.1505,Mexico,South Africa
+GRP-A-M2,2026-06-12T02:00:00+00:00,group,group,A,Zapopan,Mexico,20.6804,-103.4623,South Korea,Czech Republic
+GRP-B-M1,2026-06-12T19:00:00+00:00,group,group,B,Toronto,Canada,43.6332,-79.4187,Canada,Bosnia and Herzegovina
+GRP-D-M1,2026-06-13T01:00:00+00:00,group,group,D,Inglewood,United States,33.9535,-118.3392,United States,Paraguay
+GRP-B-M2,2026-06-13T19:00:00+00:00,group,group,B,Santa Clara,United States,37.403,-121.97,Qatar,Switzerland
+GRP-C-M1,2026-06-13T22:00:00+00:00,group,group,C,East Rutherford,United States,40.8135,-74.0745,Brazil,Morocco
+GRP-C-M2,2026-06-14T01:00:00+00:00,group,group,C,Foxborough,United States,42.0909,-71.2643,Haiti,Scotland
+GRP-D-M2,2026-06-14T04:00:00+00:00,group,group,D,Vancouver,Canada,49.2768,-123.1119,Australia,Turkey
+GRP-E-M1,2026-06-14T17:00:00+00:00,group,group,E,Houston,United States,29.6847,-95.4107,Germany,Curaçao
+GRP-F-M1,2026-06-14T20:00:00+00:00,group,group,F,Arlington,United States,32.7473,-97.0945,Netherlands,Japan
+GRP-E-M2,2026-06-14T23:00:00+00:00,group,group,E,Philadelphia,United States,39.9008,-75.1675,Ivory Coast,Ecuador
+GRP-F-M2,2026-06-15T02:00:00+00:00,group,group,F,Guadalupe,Mexico,25.6695,-100.2442,Sweden,Tunisia
+GRP-H-M1,2026-06-15T16:00:00+00:00,group,group,H,Atlanta,United States,33.7553,-84.4008,Spain,Cape Verde
+GRP-G-M1,2026-06-15T19:00:00+00:00,group,group,G,Seattle,United States,47.5952,-122.3316,Belgium,Egypt
+GRP-H-M2,2026-06-15T22:00:00+00:00,group,group,H,Miami Gardens,United States,25.958,-80.2389,Saudi Arabia,Uruguay
+GRP-G-M2,2026-06-16T01:00:00+00:00,group,group,G,Inglewood,United States,33.9535,-118.3392,Iran,New Zealand
+GRP-I-M1,2026-06-16T19:00:00+00:00,group,group,I,East Rutherford,United States,40.8135,-74.0745,France,Senegal
+GRP-I-M2,2026-06-16T22:00:00+00:00,group,group,I,Foxborough,United States,42.0909,-71.2643,Iraq,Norway
+GRP-J-M1,2026-06-17T01:00:00+00:00,group,group,J,Kansas City,United States,39.0489,-94.4849,Argentina,Algeria
+GRP-J-M2,2026-06-17T04:00:00+00:00,group,group,J,Santa Clara,United States,37.403,-121.97,Austria,Jordan
+GRP-K-M1,2026-06-17T17:00:00+00:00,group,group,K,Houston,United States,29.6847,-95.4107,Portugal,DR Congo
+GRP-L-M1,2026-06-17T20:00:00+00:00,group,group,L,Arlington,United States,32.7473,-97.0945,England,Croatia
+GRP-L-M2,2026-06-17T23:00:00+00:00,group,group,L,Toronto,Canada,43.6332,-79.4187,Ghana,Panama
+GRP-K-M2,2026-06-18T02:00:00+00:00,group,group,K,Mexico City,Mexico,19.3029,-99.1505,Uzbekistan,Colombia
+GRP-A-M3,2026-06-18T16:00:00+00:00,group,group,A,Atlanta,United States,33.7553,-84.4008,Czech Republic,South Africa
+GRP-B-M3,2026-06-18T19:00:00+00:00,group,group,B,Inglewood,United States,33.9535,-118.3392,Switzerland,Bosnia and Herzegovina
+GRP-B-M4,2026-06-18T22:00:00+00:00,group,group,B,Vancouver,Canada,49.2768,-123.1119,Canada,Qatar
+GRP-A-M4,2026-06-19T01:00:00+00:00,group,group,A,Zapopan,Mexico,20.6804,-103.4623,Mexico,South Korea
+GRP-D-M3,2026-06-19T19:00:00+00:00,group,group,D,Seattle,United States,47.5952,-122.3316,United States,Australia
+GRP-C-M3,2026-06-19T22:00:00+00:00,group,group,C,Foxborough,United States,42.0909,-71.2643,Scotland,Morocco
+GRP-C-M4,2026-06-20T00:30:00+00:00,group,group,C,Philadelphia,United States,39.9008,-75.1675,Brazil,Haiti
+GRP-D-M4,2026-06-20T03:00:00+00:00,group,group,D,Santa Clara,United States,37.403,-121.97,Turkey,Paraguay
+GRP-F-M3,2026-06-20T17:00:00+00:00,group,group,F,Houston,United States,29.6847,-95.4107,Netherlands,Sweden
+GRP-E-M3,2026-06-20T20:00:00+00:00,group,group,E,Toronto,Canada,43.6332,-79.4187,Germany,Ivory Coast
+GRP-E-M4,2026-06-21T00:00:00+00:00,group,group,E,Kansas City,United States,39.0489,-94.4849,Ecuador,Curaçao
+GRP-F-M4,2026-06-21T04:00:00+00:00,group,group,F,Guadalupe,Mexico,25.6695,-100.2442,Tunisia,Japan
+GRP-H-M3,2026-06-21T16:00:00+00:00,group,group,H,Atlanta,United States,33.7553,-84.4008,Spain,Saudi Arabia
+GRP-G-M3,2026-06-21T19:00:00+00:00,group,group,G,Inglewood,United States,33.9535,-118.3392,Belgium,Iran
+GRP-H-M4,2026-06-21T22:00:00+00:00,group,group,H,Miami Gardens,United States,25.958,-80.2389,Uruguay,Cape Verde
+GRP-G-M4,2026-06-22T01:00:00+00:00,group,group,G,Vancouver,Canada,49.2768,-123.1119,New Zealand,Egypt
+GRP-J-M3,2026-06-22T17:00:00+00:00,group,group,J,Arlington,United States,32.7473,-97.0945,Argentina,Austria
+GRP-I-M3,2026-06-22T21:00:00+00:00,group,group,I,Philadelphia,United States,39.9008,-75.1675,France,Iraq
+GRP-I-M4,2026-06-23T00:00:00+00:00,group,group,I,East Rutherford,United States,40.8135,-74.0745,Norway,Senegal
+GRP-J-M4,2026-06-23T03:00:00+00:00,group,group,J,Santa Clara,United States,37.403,-121.97,Jordan,Algeria
+GRP-K-M3,2026-06-23T17:00:00+00:00,group,group,K,Houston,United States,29.6847,-95.4107,Portugal,Uzbekistan
+GRP-L-M3,2026-06-23T20:00:00+00:00,group,group,L,Foxborough,United States,42.0909,-71.2643,England,Ghana
+GRP-L-M4,2026-06-23T23:00:00+00:00,group,group,L,Toronto,Canada,43.6332,-79.4187,Panama,Croatia
+GRP-K-M4,2026-06-24T02:00:00+00:00,group,group,K,Zapopan,Mexico,20.6804,-103.4623,Colombia,DR Congo
+GRP-B-M5,2026-06-24T19:00:00+00:00,group,group,B,Vancouver,Canada,49.2768,-123.1119,Switzerland,Canada
+GRP-B-M6,2026-06-24T19:00:00+00:00,group,group,B,Seattle,United States,47.5952,-122.3316,Bosnia and Herzegovina,Qatar
+GRP-C-M5,2026-06-24T22:00:00+00:00,group,group,C,Miami Gardens,United States,25.958,-80.2389,Scotland,Brazil
+GRP-C-M6,2026-06-24T22:00:00+00:00,group,group,C,Atlanta,United States,33.7553,-84.4008,Morocco,Haiti
+GRP-A-M5,2026-06-25T01:00:00+00:00,group,group,A,Mexico City,Mexico,19.3029,-99.1505,Czech Republic,Mexico
+GRP-A-M6,2026-06-25T01:00:00+00:00,group,group,A,Guadalupe,Mexico,25.6695,-100.2442,South Africa,South Korea
+GRP-E-M5,2026-06-25T20:00:00+00:00,group,group,E,Philadelphia,United States,39.9008,-75.1675,Curaçao,Ivory Coast
+GRP-E-M6,2026-06-25T20:00:00+00:00,group,group,E,East Rutherford,United States,40.8135,-74.0745,Ecuador,Germany
+GRP-F-M5,2026-06-25T23:00:00+00:00,group,group,F,Arlington,United States,32.7473,-97.0945,Japan,Sweden
+GRP-F-M6,2026-06-25T23:00:00+00:00,group,group,F,Kansas City,United States,39.0489,-94.4849,Tunisia,Netherlands
+GRP-D-M5,2026-06-26T02:00:00+00:00,group,group,D,Inglewood,United States,33.9535,-118.3392,Turkey,United States
+GRP-D-M6,2026-06-26T02:00:00+00:00,group,group,D,Santa Clara,United States,37.403,-121.97,Paraguay,Australia
+GRP-I-M5,2026-06-26T19:00:00+00:00,group,group,I,Foxborough,United States,42.0909,-71.2643,Norway,France
+GRP-I-M6,2026-06-26T19:00:00+00:00,group,group,I,Toronto,Canada,43.6332,-79.4187,Senegal,Iraq
+GRP-H-M5,2026-06-27T00:00:00+00:00,group,group,H,Houston,United States,29.6847,-95.4107,Cape Verde,Saudi Arabia
+GRP-H-M6,2026-06-27T00:00:00+00:00,group,group,H,Zapopan,Mexico,20.6804,-103.4623,Uruguay,Spain
+GRP-G-M5,2026-06-27T03:00:00+00:00,group,group,G,Seattle,United States,47.5952,-122.3316,Egypt,Iran
+GRP-G-M6,2026-06-27T03:00:00+00:00,group,group,G,Vancouver,Canada,49.2768,-123.1119,New Zealand,Belgium
+GRP-L-M5,2026-06-27T21:00:00+00:00,group,group,L,East Rutherford,United States,40.8135,-74.0745,Panama,England
+GRP-L-M6,2026-06-27T21:00:00+00:00,group,group,L,Philadelphia,United States,39.9008,-75.1675,Croatia,Ghana
+GRP-K-M5,2026-06-27T23:30:00+00:00,group,group,K,Miami Gardens,United States,25.958,-80.2389,Colombia,Portugal
+GRP-K-M6,2026-06-27T23:30:00+00:00,group,group,K,Atlanta,United States,33.7553,-84.4008,DR Congo,Uzbekistan
+GRP-J-M5,2026-06-28T02:00:00+00:00,group,group,J,Kansas City,United States,39.0489,-94.4849,Algeria,Austria
+GRP-J-M6,2026-06-28T02:00:00+00:00,group,group,J,Arlington,United States,32.7473,-97.0945,Jordan,Argentina
