@@ -22,6 +22,7 @@ class Settings:
     snapshots_dir: Path
     reports_dir: Path
     state_dir: Path
+    flags_dir: Path
     random_seed: int = 42
     default_iterations: int = 1000
 
@@ -41,6 +42,7 @@ SETTINGS = Settings(
     snapshots_dir=ROOT_DIR / "output" / "snapshots",
     reports_dir=ROOT_DIR / "output" / "reports",
     state_dir=ROOT_DIR / "output" / "state",
+    flags_dir=ROOT_DIR / "data" / "raw" / "flags",
 )
 
 
@@ -55,6 +57,7 @@ RAW_TRANSFERMARKT_INJURIES_FILE = SETTINGS.raw_dir / "players" / "transfermarkt_
 RAW_TRANSFERMARKT_NATIONAL_FILE = SETTINGS.raw_dir / "players" / "transfermarkt_player_national_performances.csv"
 RAW_MACRO_FILE = SETTINGS.raw_dir / "macro" / "world_bank_macro.csv"
 RAW_WEATHER_FILE = SETTINGS.raw_dir / "weather" / "fixture_weather.csv"
+FLAGS_DIR = SETTINGS.flags_dir
 AUTO_RESULTS_FILE = SETTINGS.external_dir / "auto_results.csv"
 TRAIN_DATASET_FILE = SETTINGS.datasets_dir / "train.csv"
 TEAM_FEATURES_FILE = SETTINGS.features_dir / "team_features.json"
@@ -80,6 +83,7 @@ def ensure_directories() -> None:
         SETTINGS.raw_dir / "players",
         SETTINGS.raw_dir / "macro",
         SETTINGS.raw_dir / "weather",
+        SETTINGS.flags_dir,
         SETTINGS.processed_dir,
         SETTINGS.features_dir,
         SETTINGS.datasets_dir,

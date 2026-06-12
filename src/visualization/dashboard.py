@@ -4,22 +4,21 @@ from __future__ import annotations
 
 from typing import Any
 
+import base64
 import pandas as pd
+import sys
+from pathlib import Path
 
+# Ensure the root directory is in sys.path so 'src' can be imported
+sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
+
+from src.config import FLAGS_DIR
 from src.visualization.accuracy_charts import accuracy_summary
 from src.visualization.bracket import load_latest_bracket
 from src.visualization.evolution_timeline import list_snapshot_timeline
+from src.visualization.head_to_head import get_head_to_head
 from src.visualization.probability_heatmap import probability_table
 from src.visualization.standings import load_latest_standings
-
-FLAG_BY_TEAM = {
-    "Argentina": "🇦🇷",
-    "Brazil": "🇧🇷",
-    "France": "🇫🇷",
-    "Japan": "🇯🇵",
-    "Mexico": "🇲🇽",
-    "United States": "🇺🇸",
-}
 
 
 def _inject_styles(st: Any) -> None:
@@ -197,16 +196,37 @@ def _inject_styles(st: Any) -> None:
             font-size: 0.9rem;
             margin-top: 0.8rem;
         }
+        .flag-icon {
+            height: 1.1em;
+            width: 1.5em;
+            border-radius: 2px;
+            vertical-align: text-bottom;
+            margin-right: 0.3em;
+            object-fit: cover;
+            border: 1px solid #dce8e4;
+        }
         </style>
         """,
         unsafe_allow_html=True,
     )
 
 
-def _flag(team: str) -> str:
-    """Return a best-effort flag icon for the known teams."""
+def _local_flag_b64(team: str) -> str:
+    """Return base64 Data URI of local flag."""
+    path = FLAGS_DIR / f"{team}.png"
+    if path.exists():
+        with open(path, "rb") as f:
+            data = f.read()
+        return f"data:image/png;base64,{base64.b64encode(data).decode()}"
+    return ""
 
-    return FLAG_BY_TEAM.get(team, "🏳️")
+def _local_flag_html(team: str) -> str:
+    """Return HTML img tag for local flag."""
+    b64 = _local_flag_b64(team)
+    if b64:
+        return f'<img src="{b64}" class="flag-icon" />'
+    return "🏳️"
+
 
 
 def _sorted_group_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -239,7 +259,7 @@ def _render_group_card(st: Any, group_id: str, rows: list[dict[str, Any]]) -> No
             f"""
             <tr class="{row_class}">
                 <td>{position}</td>
-                <td class="team-cell">{_flag(row['team'])} {row['team']}{qualifier}</td>
+                <td class="team-cell">{_local_flag_html(row['team'])} {row['team']}{qualifier}</td>
                 <td>{row['points']}</td>
                 <td>{row['goal_difference']}</td>
                 <td>{row['goals_for']}</td>
@@ -282,7 +302,7 @@ def _render_match_card(st: Any, round_label: str, match: dict[str, Any]) -> None
         winner_mark = '<span class="winner-mark">Qualified</span>' if team == winner else ""
         return (
             f'<div class="match-line">'
-            f'<span class="match-team">{_flag(team)} {team}{winner_mark}</span>'
+            f'<span class="match-team">{_local_flag_html(team)} {team}{winner_mark}</span>'
             f'<span>{goals}</span>'
             f'</div>'
         )
@@ -350,7 +370,7 @@ def _render_overview(st: Any) -> None:
             st.info("No semi-final projection available.")
 
     with center_col:
-        champion_flag = _flag(champion) if champion else "🏆"
+        champion_flag = _local_flag_html(champion) if champion else "🏆"
         champion_probability = champion_odds.get(champion, 0.0) if champion else 0.0
         st.markdown(
             f"""
@@ -406,26 +426,171 @@ def main() -> None:
             for group_id, rows in sorted(standings.items()):
                 st.markdown(f"### Group {group_id}")
                 frame = pd.DataFrame(_sorted_group_rows(rows))
-                frame["team"] = frame.apply(
-                    lambda row: f"{_flag(row['team'])} {row['team']}" + ("  QUALIFIED" if row["qualified"] else ""),
+                frame["Flag"] = frame["team"].apply(_local_flag_b64)
+                frame["Team"] = frame.apply(
+                    lambda row: row['team'] + ("  (QUALIFIED)" if row["qualified"] else ""),
                     axis=1,
                 )
                 st.dataframe(
-                    frame[["team", "points", "goal_difference", "goals_for", "goals_against", "played"]],
+                    frame[["Flag", "Team", "points", "goal_difference", "goals_for", "goals_against", "played"]],
                     use_container_width=True,
                     hide_index=True,
+                    column_config={"Flag": st.column_config.ImageColumn(width="small")}
                 )
         else:
             st.info("No standings snapshot is available yet.")
 
     with predictions_tab:
         st.subheader("Match Predictions")
+        st.caption("Click a row to view detailed match analysis.")
         table = probability_table()
         if table:
             frame = pd.DataFrame(table)
-            for column in ("home_team", "away_team"):
-                frame[column] = frame[column].map(lambda team: f"{_flag(team)} {team}")
-            st.dataframe(frame, use_container_width=True, hide_index=True)
+            
+            # Keep original names for the callback before mapping flags
+            clean_frame = frame.copy()
+            
+            frame["home_flag"] = frame["home_team"].apply(_local_flag_b64)
+            frame["away_flag"] = frame["away_team"].apply(_local_flag_b64)
+            
+            ordered_cols = ["home_flag", "home_team", "away_flag", "away_team"]
+            for c in frame.columns:
+                if c not in ordered_cols and c not in ["home_flag", "away_flag"]:
+                    ordered_cols.append(c)
+            
+            event = st.dataframe(
+                frame[ordered_cols], 
+                use_container_width=True, 
+                hide_index=True,
+                on_select="rerun",
+                selection_mode="single-row",
+                column_config={
+                    "home_flag": st.column_config.ImageColumn("Home Flag", width="small"),
+                    "away_flag": st.column_config.ImageColumn("Away Flag", width="small"),
+                    "home_team": "Home Team",
+                    "away_team": "Away Team"
+                }
+            )
+            
+            if event.selection.rows:
+                selected_idx = event.selection.rows[0]
+                home = clean_frame.iloc[selected_idx]["home_team"]
+                away = clean_frame.iloc[selected_idx]["away_team"]
+                
+                @st.cache_resource
+                def get_cached_model():
+                    from src.models.train import load_or_train_ensemble
+                    return load_or_train_ensemble()
+                    
+                model = get_cached_model()
+                
+                @st.dialog(f"Match Analysis", width="large")
+                def match_analysis_modal():
+                    st.markdown(f"### {_local_flag_html(home)} {home} vs {_local_flag_html(away)} {away}", unsafe_allow_html=True)
+                    st.write(f"**Prediction Details**")
+                    
+                    prediction = model.predict_match(home, away)
+                    probs = prediction["outcome_probabilities"]
+                    score = prediction["predicted_score"]
+                    
+                    st.write(f"**Predicted Score**: {home} {score['home']} - {score['away']} {away}")
+                    st.write(f"**Win Probabilities**: {home} ({probs['home_win']:.1%}) | Draw ({probs['draw']:.1%}) | {away} ({probs['away_win']:.1%})")
+                    st.write(f"**Confidence**: {prediction['confidence']['label']} ({prediction['confidence']['overall']}/100)")
+                    
+                    st.divider()
+                    
+                    col1, col2 = st.columns([1, 1])
+                    
+                    with col1:
+                        st.subheader("Head-to-Head History")
+                        h2h = get_head_to_head(home, away)
+                        summary = h2h.get("summary", {})
+                        if summary:
+                            st.write(f"**Total Matches**: {summary.get('total_matches', 0)}")
+                            st.write(f"**{home} Wins**: {summary.get(home + '_wins', 0)} | **{away} Wins**: {summary.get(away + '_wins', 0)} | **Draws**: {summary.get('draws', 0)}")
+                            
+                            if h2h.get("recent_matches"):
+                                st.write("**Recent Matches:**")
+                                for m in h2h["recent_matches"]:
+                                    st.caption(f"{m['date']} - {m['tournament']}: {m['home_team']} {m['home_goals']} - {m['away_goals']} {m['away_team']}")
+                        else:
+                            st.info("No historical matches found between these teams.")
+                            
+                    with col2:
+                        st.subheader("Team Comparison")
+                        
+                        import plotly.graph_objects as go
+                        
+                        home_stats = model.team_lookup.get(home, {})
+                        away_stats = model.team_lookup.get(away, {})
+                        
+                        metrics = [
+                            ("Elo Rating", "elo"),
+                            ("Squad Rating", "squad_avg_rating"),
+                            ("Starting XI Rating", "starting_xi_rating"),
+                            ("Form", "form_points_avg"),
+                            ("Attack", "attack_strength"),
+                            ("Defense", "defense_strength")
+                        ]
+                        
+                        y_labels = []
+                        home_vals = []
+                        away_vals = []
+                        
+                        for label, key in metrics:
+                            h_val = home_stats.get(key, 0)
+                            a_val = away_stats.get(key, 0)
+                            
+                            # Normalize for display to make the bars comparable
+                            max_val = max(h_val, a_val) if max(h_val, a_val) > 0 else 1
+                            
+                            y_labels.append(label)
+                            home_vals.append(h_val)
+                            away_vals.append(a_val)
+                            
+                        fig = go.Figure()
+                        fig.add_trace(go.Bar(
+                            y=y_labels,
+                            x=[-x for x in home_vals], # Negative to plot left
+                            name=home,
+                            orientation='h',
+                            marker=dict(color='#1f8f6a'),
+                            text=[f"{x:.1f}" for x in home_vals],
+                            textposition='outside'
+                        ))
+                        fig.add_trace(go.Bar(
+                            y=y_labels,
+                            x=away_vals,
+                            name=away,
+                            orientation='h',
+                            marker=dict(color='#123f37'),
+                            text=[f"{x:.1f}" for x in away_vals],
+                            textposition='outside'
+                        ))
+                        
+                        fig.update_layout(
+                            barmode='relative',
+                            title_text="Team Strengths Comparison",
+                            yaxis=dict(autorange="reversed"),
+                            xaxis=dict(showticklabels=False),
+                            margin=dict(l=0, r=0, t=30, b=0),
+                            height=300
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+                        
+                    st.divider()
+                    st.subheader("How this is computed")
+                    st.markdown("""
+                    This prediction is generated by an **Ensemble Model** combining:
+                    - **Poisson Regression** (predicts exact scorelines based on attack/defense strengths)
+                    - **XGBoost & Random Forest** (predicts win/draw/loss using non-linear squad features)
+                    - **Elo System** (baseline strength ratings)
+                    
+                    The base probabilities are then adjusted based on contextual factors like *squad market value*, *travel fatigue*, *weather severity*, and *injury load*.
+                    """)
+                    
+                match_analysis_modal()
+                
         else:
             st.info("Prediction outputs have not been generated yet.")
 
