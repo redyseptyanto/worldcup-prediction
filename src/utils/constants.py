@@ -33,6 +33,9 @@ FEATURE_COLUMNS = [
     "form_diff",
     "attack_diff",
     "defense_diff",
+    "world_cup_pedigree_diff",
+    "world_cup_semi_final_rate_diff",
+    "world_cup_appearances_diff",
 ]
 
 

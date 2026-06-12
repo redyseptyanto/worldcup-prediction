@@ -15,6 +15,9 @@ def _empty_standings() -> dict[str, dict[str, float]]:
     return defaultdict(
         lambda: {
             "points": 0.0,
+            "wins": 0.0,
+            "draws": 0.0,
+            "losses": 0.0,
             "goal_difference": 0.0,
             "goals_for": 0.0,
             "goals_against": 0.0,
@@ -36,11 +39,17 @@ def _apply_result(standings: dict[str, dict[str, float]], home_team: str, away_t
     away["goal_difference"] += away_goals - home_goals
     if home_goals > away_goals:
         home["points"] += 3
+        home["wins"] += 1
+        away["losses"] += 1
     elif away_goals > home_goals:
         away["points"] += 3
+        away["wins"] += 1
+        home["losses"] += 1
     else:
         home["points"] += 1
         away["points"] += 1
+        home["draws"] += 1
+        away["draws"] += 1
 
 
 def rank_group(standings: dict[str, dict[str, float]]) -> list[dict[str, Any]]:
@@ -52,6 +61,9 @@ def rank_group(standings: dict[str, dict[str, float]]) -> list[dict[str, Any]]:
             {
                 "team": team,
                 "points": int(metrics["points"]),
+                "wins": int(metrics["wins"]),
+                "draws": int(metrics["draws"]),
+                "losses": int(metrics["losses"]),
                 "goal_difference": int(metrics["goal_difference"]),
                 "goals_for": int(metrics["goals_for"]),
                 "goals_against": int(metrics["goals_against"]),
@@ -60,8 +72,7 @@ def rank_group(standings: dict[str, dict[str, float]]) -> list[dict[str, Any]]:
         )
     return sorted(
         ranked,
-        key=lambda row: (row["points"], row["goal_difference"], row["goals_for"], row["team"]),
-        reverse=True,
+        key=lambda row: (-row["points"], -row["goal_difference"], -row["goals_for"], row["team"]),
     )
 
 
@@ -75,8 +86,7 @@ def rank_third_placed_teams(group_rankings: dict[str, list[dict[str, Any]]]) -> 
         third_placed_rows.append(third_row)
     return sorted(
         third_placed_rows,
-        key=lambda row: (row["points"], row["goal_difference"], row["goals_for"], row["team"]),
-        reverse=True,
+        key=lambda row: (-row["points"], -row["goal_difference"], -row["goals_for"], row["team"]),
     )
 
 
@@ -120,6 +130,45 @@ def simulate_group_matches(
     return rank_group(standings), predictions
 
 
+def project_group_matches(
+    group_fixtures: pd.DataFrame,
+    model: EnsembleModel,
+    resolved_results: dict[str, dict[str, int]] | None = None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Project one group's fixtures using displayed predicted scorelines."""
+
+    resolved_results = resolved_results or {}
+    standings = _empty_standings()
+    predictions: list[dict[str, Any]] = []
+
+    for row in group_fixtures.sort_values(["date", "match_id"]).itertuples(index=False):
+        prediction = model.predict_match(row.home_team, row.away_team, match_id=row.match_id)
+        if row.match_id in resolved_results:
+            home_goals = int(resolved_results[row.match_id]["home_goals"])
+            away_goals = int(resolved_results[row.match_id]["away_goals"])
+            source = "resolved"
+        else:
+            home_goals = int(prediction["predicted_score"]["home"])
+            away_goals = int(prediction["predicted_score"]["away"])
+            source = "projected"
+        _apply_result(standings, row.home_team, row.away_team, home_goals, away_goals)
+        predictions.append(
+            {
+                "match_id": row.match_id,
+                "group": row.group,
+                "home_team": row.home_team,
+                "away_team": row.away_team,
+                "predicted_score": prediction["predicted_score"],
+                "outcome_probabilities": prediction["outcome_probabilities"],
+                "confidence": prediction["confidence"],
+                "simulated_result": {"home": home_goals, "away": away_goals},
+                "result_source": source,
+            }
+        )
+
+    return rank_group(standings), predictions
+
+
 def simulate_group_stage(
     fixtures: pd.DataFrame,
     model: EnsembleModel,
@@ -131,18 +180,22 @@ def simulate_group_stage(
 
     rng = np.random.default_rng(seed)
     qualification_counts: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
-    sampled_predictions: dict[str, list[dict[str, Any]]] = {}
-    latest_rankings: dict[str, list[dict[str, Any]]] = {}
-    latest_best_third: list[dict[str, Any]] = []
+    projected_predictions: dict[str, list[dict[str, Any]]] = {}
+    projected_rankings: dict[str, list[dict[str, Any]]] = {}
+
+    for group_id, group_fixtures in fixtures.groupby("group"):
+        ranking, predictions = project_group_matches(group_fixtures, model, resolved_results=resolved_results)
+        projected_rankings[group_id] = ranking
+        projected_predictions[group_id] = predictions
+
+    projected_best_third = rank_third_placed_teams(projected_rankings)[:8]
 
     for _ in range(iterations):
         current_rankings: dict[str, list[dict[str, Any]]] = {}
-        current_predictions: dict[str, list[dict[str, Any]]] = {}
 
         for group_id, group_fixtures in fixtures.groupby("group"):
             ranking, predictions = simulate_group_matches(group_fixtures, model, rng, resolved_results=resolved_results)
             current_rankings[group_id] = ranking
-            current_predictions[group_id] = predictions
             for position, row in enumerate(ranking, start=1):
                 qualification_counts[row["team"]][f"finish_{position}"] += 1
 
@@ -154,10 +207,6 @@ def simulate_group_stage(
                 if position <= 2 or row["team"] in qualified_third_teams:
                     qualification_counts[row["team"]]["qualify"] += 1
 
-        latest_rankings = current_rankings
-        sampled_predictions = current_predictions
-        latest_best_third = best_third
-
     qualification_probabilities = {
         team: {
             label: round(count / iterations, 4)
@@ -166,8 +215,8 @@ def simulate_group_stage(
         for team, metrics in qualification_counts.items()
     }
     return {
-        "standings": latest_rankings,
-        "predictions": sampled_predictions,
+        "standings": projected_rankings,
+        "predictions": projected_predictions,
         "qualification_probabilities": qualification_probabilities,
-        "best_third_placed": latest_best_third,
+        "best_third_placed": projected_best_third,
     }

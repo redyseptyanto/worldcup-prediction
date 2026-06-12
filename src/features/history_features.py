@@ -6,6 +6,8 @@ from collections import defaultdict, deque
 
 import pandas as pd
 
+from src.features.world_cup_pedigree import build_world_cup_pedigree_history, summarize_world_cup_pedigree
+
 
 def build_training_dataset(matches: pd.DataFrame, rankings: pd.DataFrame) -> pd.DataFrame:
     """Build a time-aware training dataset from historical matches."""
@@ -15,10 +17,28 @@ def build_training_dataset(matches: pd.DataFrame, rankings: pd.DataFrame) -> pd.
     scored: dict[str, deque[int]] = defaultdict(lambda: deque(maxlen=8))
     conceded: dict[str, deque[int]] = defaultdict(lambda: deque(maxlen=8))
     results: dict[str, deque[int]] = defaultdict(lambda: deque(maxlen=5))
+    pedigree_history = build_world_cup_pedigree_history(matches)
 
     rows: list[dict[str, object]] = []
 
     for row in matches.sort_values("date").itertuples(index=False):
+        pedigree_snapshot = summarize_world_cup_pedigree(pedigree_history, as_of=pd.Timestamp(row.date))
+        home_pedigree = pedigree_snapshot.get(
+            row.home_team,
+            {
+                "world_cup_pedigree": 0.0,
+                "world_cup_semi_final_rate": 0.0,
+                "world_cup_appearances": 0.0,
+            },
+        )
+        away_pedigree = pedigree_snapshot.get(
+            row.away_team,
+            {
+                "world_cup_pedigree": 0.0,
+                "world_cup_semi_final_rate": 0.0,
+                "world_cup_appearances": 0.0,
+            },
+        )
         home_scored = list(scored[row.home_team])
         away_scored = list(scored[row.away_team])
         home_conceded = list(conceded[row.home_team])
@@ -43,6 +63,9 @@ def build_training_dataset(matches: pd.DataFrame, rankings: pd.DataFrame) -> pd.
             "form_diff": average(home_results, 1.4) - average(away_results, 1.4),
             "attack_diff": average(home_scored, 1.4) - average(away_conceded, 1.1),
             "defense_diff": average(home_conceded, 1.1) - average(away_scored, 1.4),
+            "world_cup_pedigree_diff": home_pedigree["world_cup_pedigree"] - away_pedigree["world_cup_pedigree"],
+            "world_cup_semi_final_rate_diff": home_pedigree["world_cup_semi_final_rate"] - away_pedigree["world_cup_semi_final_rate"],
+            "world_cup_appearances_diff": home_pedigree["world_cup_appearances"] - away_pedigree["world_cup_appearances"],
         }
         outcome = "home_win" if row.home_goals > row.away_goals else "draw" if row.home_goals == row.away_goals else "away_win"
         features["outcome"] = outcome

@@ -6,6 +6,8 @@ from collections import defaultdict
 
 import pandas as pd
 
+from src.features.world_cup_pedigree import build_world_cup_pedigree_history, summarize_world_cup_pedigree
+
 
 def compute_team_summary(
     matches: pd.DataFrame,
@@ -47,10 +49,19 @@ def compute_team_summary(
         elo[row.away_team] -= k_factor * (actual_home - expected_home)
 
     summary_rows = []
+    pedigree_summary = summarize_world_cup_pedigree(build_world_cup_pedigree_history(matches))
     for row in rankings.itertuples(index=False):
         if output_teams is not None and row.team not in output_teams:
             continue
         team_stats = stats[row.team]
+        pedigree = pedigree_summary.get(
+            row.team,
+            {
+                "world_cup_pedigree": 0.0,
+                "world_cup_semi_final_rate": 0.0,
+                "world_cup_appearances": 0.0,
+            },
+        )
         matches_played = max(team_stats["matches"], 1.0)
         goals_for = team_stats["goals_for"] / matches_played
         goals_against = team_stats["goals_against"] / matches_played
@@ -66,6 +77,9 @@ def compute_team_summary(
                 "form_points_avg": round(points, 3),
                 "attack_strength": round(max(0.35, goals_for), 3),
                 "defense_strength": round(max(0.35, goals_against), 3),
+                "world_cup_pedigree": pedigree["world_cup_pedigree"],
+                "world_cup_semi_final_rate": pedigree["world_cup_semi_final_rate"],
+                "world_cup_appearances": pedigree["world_cup_appearances"],
             }
         )
     summary = pd.DataFrame(summary_rows).sort_values("team").reset_index(drop=True)

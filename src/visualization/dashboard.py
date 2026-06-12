@@ -12,7 +12,7 @@ from pathlib import Path
 # Ensure the root directory is in sys.path so 'src' can be imported
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
-from src.config import FLAGS_DIR
+from src.config import ENSEMBLE_MODEL_FILE, FLAGS_DIR
 from src.utils.helpers import load_json
 
 def _render_html(st, html_str: str) -> None:
@@ -25,6 +25,14 @@ from src.visualization.evolution_timeline import list_snapshot_timeline
 from src.visualization.head_to_head import get_head_to_head
 from src.visualization.probability_heatmap import probability_table
 from src.visualization.standings import load_latest_standings
+
+
+def _ensure_baseline_snapshot() -> None:
+    """Create a baseline snapshot when the dashboard has nothing to render."""
+
+    from src.adaptive.engine import AdaptiveEngine
+
+    AdaptiveEngine(iterations=500).create_baseline_snapshot()
 
 
 def _inject_styles(st: Any, dark_mode: bool = False) -> None:
@@ -133,6 +141,9 @@ def _inject_styles(st: Any, dark_mode: bool = False) -> None:
             box-shadow: 0 14px 28px var(--card-shadow);
             background: var(--card-bg);
             margin-bottom: 1rem;
+        }}
+        .group-card-body {{
+            overflow-x: auto;
         }}
         .group-card-header {{
             background: var(--header-bg);
@@ -531,6 +542,9 @@ def _render_group_card(st: Any, group_id: str, rows: list[dict[str, Any]]) -> No
                 <td>{position}</td>
                 <td class="team-cell">{_local_flag_html(row['team'])} {row['team']}{qualifier}</td>
                 <td>{row['points']}</td>
+                <td>{row.get('wins', 0)}</td>
+                <td>{row.get('draws', 0)}</td>
+                <td>{row.get('losses', 0)}</td>
                 <td>{row['goal_difference']}</td>
                 <td>{row['goals_for']}</td>
             </tr>
@@ -541,20 +555,25 @@ def _render_group_card(st: Any, group_id: str, rows: list[dict[str, Any]]) -> No
         f"""
         <div class="group-card">
             <div class="group-card-header">Group {group_id}</div>
-            <table class="group-table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Team</th>
-                        <th>Pts</th>
-                        <th>GD</th>
-                        <th>GF</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {''.join(table_rows)}
-                </tbody>
-            </table>
+            <div class="group-card-body">
+                <table class="group-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Team</th>
+                            <th>Pts</th>
+                            <th>W</th>
+                            <th>D</th>
+                            <th>L</th>
+                            <th>GD</th>
+                            <th>GF</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {''.join(table_rows)}
+                    </tbody>
+                </table>
+            </div>
         </div>
         """)
 
@@ -741,7 +760,7 @@ def _render_knockout_bracket(st: Any, bracket: dict[str, Any], champion_odds: di
             if home != "TBD" and away != "TBD":
                 match_id = m.get("match_id", f"{home}_{away}").replace(" ", "_")
                 if st.button(f"hidden_{match_id}", key=f"btn_hidden_{match_id}"):
-                    show_match_analysis_modal(home, away)
+                    show_match_analysis_modal(home, away, m.get("match_id"))
 
 
 def _render_overview(st: Any) -> None:
@@ -750,6 +769,15 @@ def _render_overview(st: Any) -> None:
     standings = load_latest_standings()
     bracket_data = load_latest_bracket()
     snapshots = list_snapshot_timeline()
+
+    if not snapshots:
+        st.warning("No baseline snapshot is available yet.")
+        if st.button("Build Baseline Snapshot", key="build_baseline_snapshot"):
+            with st.spinner("Building baseline tournament snapshot..."):
+                _ensure_baseline_snapshot()
+            st.rerun()
+        return
+
     champion_odds = bracket_data.get("champion_odds", {})
     bracket = bracket_data.get("bracket", {})
 
@@ -764,9 +792,9 @@ def _render_overview(st: Any) -> None:
 
     if standings:
         groups = sorted(standings.items())
-        for row_start in range(0, len(groups), 4):
-            columns = st.columns(4)
-            for column, (group_id, rows) in zip(columns, groups[row_start : row_start + 4]):
+        for row_start in range(0, len(groups), 3):
+            columns = st.columns(3)
+            for column, (group_id, rows) in zip(columns, groups[row_start : row_start + 3]):
                 with column:
                     _render_group_card(st, group_id, rows)
     else:
@@ -784,23 +812,32 @@ def _render_overview(st: Any) -> None:
 
 
 
-def show_match_analysis_modal(home: str, away: str):
+def show_match_analysis_modal(home: str, away: str, match_id: str | None = None):
     import streamlit as st
+    from src.models.train import load_or_train_ensemble
     from src.simulation.penalties import penalty_home_probability
 
     @st.cache_resource
-    def get_cached_model():
-        from src.models.train import load_or_train_ensemble
+    def get_cached_model(model_version: float):
         return load_or_train_ensemble()
-        
-    model = get_cached_model()
+
+    model_version = ENSEMBLE_MODEL_FILE.stat().st_mtime if ENSEMBLE_MODEL_FILE.exists() else 0.0
+    model = get_cached_model(model_version)
     
     @st.dialog(f"Match Analysis", width="large")
     def _modal():
         st.markdown(f"### {_local_flag_html(home)} {home} vs {_local_flag_html(away)} {away}", unsafe_allow_html=True)
         st.write(f"**Prediction Details**")
-        
-        prediction = model.predict_match(home, away)
+
+        try:
+            prediction = model.predict_match(home, away, match_id=match_id)
+        except ValueError as exc:
+            if "Feature names should match" not in str(exc):
+                raise
+            get_cached_model.clear()
+            refreshed_model = load_or_train_ensemble(force=True)
+            prediction = refreshed_model.predict_match(home, away, match_id=match_id)
+
         probs = prediction["outcome_probabilities"]
         score = prediction["predicted_score"]
         penalty_home = penalty_home_probability(
@@ -1057,7 +1094,7 @@ def main() -> None:
                     axis=1,
                 )
                 st.dataframe(
-                    frame[["Flag", "Team", "points", "goal_difference", "goals_for", "goals_against", "played"]],
+                    frame[["Flag", "Team", "points", "wins", "draws", "losses", "goal_difference", "goals_for", "goals_against", "played"]],
                     use_container_width=True,
                     hide_index=True,
                     column_config={"Flag": st.column_config.ImageColumn(width="small")}
@@ -1113,8 +1150,9 @@ def main() -> None:
                 selected_idx = event.selection.rows[0]
                 home = clean_frame.iloc[selected_idx]["home_team"]
                 away = clean_frame.iloc[selected_idx]["away_team"]
+                match_id = clean_frame.iloc[selected_idx]["match_id"]
                 
-                show_match_analysis_modal(home, away)
+                show_match_analysis_modal(home, away, match_id)
 
     with accuracy_tab:
         st.subheader("Prediction Ledger Summary")

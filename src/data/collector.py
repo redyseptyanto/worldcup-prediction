@@ -221,7 +221,7 @@ def _extract_group_teams(group_raw: str, group_id: str) -> dict[str, str]:
 def _extract_group_fixtures(group_raw: str, group_id: str) -> list[dict[str, object]]:
     fixtures: list[dict[str, object]] = []
     sections = re.findall(
-        rf"<section begin={group_id}(\d)\s*/>(.*?)<section end={group_id}\1\s*/>",
+        rf'<section begin="?{group_id}(\d)"?\s*/>(.*?)<section end="?{group_id}\1"?\s*/>',
         group_raw,
         re.S,
     )
