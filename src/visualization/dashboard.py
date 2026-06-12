@@ -13,6 +13,12 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
 from src.config import FLAGS_DIR
+from src.utils.helpers import load_json
+
+def _render_html(st, html_str: str) -> None:
+    import re
+    st.markdown(re.sub(r'\n\s+', '\n', html_str), unsafe_allow_html=True)
+
 from src.visualization.accuracy_charts import accuracy_summary
 from src.visualization.bracket import load_latest_bracket
 from src.visualization.evolution_timeline import list_snapshot_timeline
@@ -21,194 +27,458 @@ from src.visualization.probability_heatmap import probability_table
 from src.visualization.standings import load_latest_standings
 
 
-def _inject_styles(st: Any) -> None:
-    """Apply a clean tournament-board style to the dashboard."""
+def _inject_styles(st: Any, dark_mode: bool = False) -> None:
+    """Apply a clean tournament-board style to the dashboard with Light/Dark mode support."""
+
+    theme_class = "dark-theme" if dark_mode else "light-theme"
 
     st.markdown(
-        """
+        f"""
+        { '<div class="dark-theme-trigger" style="display:none;"></div>' if dark_mode else '' }
         <style>
-        .stApp {
-            background: #ffffff;
-            color: #10231f;
-        }
-        .block-container {
+        :root {{
+            --bg-color: #ffffff;
+            --text-color: #10231f;
+            --title-color: #0f3d35;
+            --subtitle-color: #4b635d;
+            --card-border: #d5e4df;
+            --card-shadow: rgba(15, 61, 53, 0.08);
+            --card-bg: #ffffff;
+            --header-bg: #123f37;
+            --header-text: #ffffff;
+            --table-th-color: #5a726b;
+            --table-th-border: #e6efec;
+            --table-th-bg: #f7fbf9;
+            --table-td-border: #edf3f1;
+            --qual-row-bg: #eff9f4;
+            --qual-pill-bg: #1f8f6a;
+            --knockout-title: #123f37;
+            --match-card-border: #dce8e4;
+            --match-card-bg: #fcfefd;
+            --match-round-text: #6f857f;
+            --match-meta-text: #5f756f;
+            --winner-mark: #1f8f6a;
+            --champion-bg-start: #fffdf5;
+            --champion-bg-end: #ffffff;
+            --champion-label: #7b6a2d;
+            --champion-odds: #556b65;
+            --bracket-title-bg: #f0f7f4;
+            --bracket-match-hover: rgba(15,61,53,0.12);
+            --line-color: #cbdad5;
+        }}
+        
+        /* The global dark mode overrides */
+        .stApp.dark-theme,
+        [data-testid="stAppViewContainer"]:has(.dark-theme-trigger) {{
+            --bg-color: #0e1117;
+            --text-color: #fafafa;
+            --title-color: #e0f2ee;
+            --subtitle-color: #a0b2ad;
+            --card-border: #2a3633;
+            --card-shadow: rgba(0, 0, 0, 0.4);
+            --card-bg: #161b22;
+            --header-bg: #1f2926;
+            --header-text: #e0f2ee;
+            --table-th-color: #8da49d;
+            --table-th-border: #2a3633;
+            --table-th-bg: #1c2220;
+            --table-td-border: #242f2c;
+            --qual-row-bg: #19362c;
+            --qual-pill-bg: #10b981;
+            --knockout-title: #e0f2ee;
+            --match-card-border: #303e3a;
+            --match-card-bg: #1b221f;
+            --match-round-text: #8da49d;
+            --match-meta-text: #8da49d;
+            --winner-mark: #10b981;
+            --champion-bg-start: #2d2610;
+            --champion-bg-end: #161b22;
+            --champion-label: #d4af37;
+            --champion-odds: #a0b2ad;
+            --bracket-title-bg: #1c2220;
+            --bracket-match-hover: rgba(0,0,0,0.5);
+            --line-color: #3b4e48;
+        }}
+
+        /* We rely on the hidden div above to trigger the :has selector if dark mode is active */
+
+        .stApp {{
+            background: var(--bg-color);
+            color: var(--text-color);
+        }}
+        .block-container {{
             padding-top: 1.5rem;
             padding-bottom: 2rem;
             max-width: 1280px;
-        }
-        .overview-shell {
+        }}
+        .overview-shell {{
             background: transparent;
-        }
-        .overview-title {
+        }}
+        .overview-title {{
             font-size: 2.35rem;
             font-weight: 800;
             letter-spacing: -0.04em;
             margin-bottom: 0.2rem;
-            color: #0f3d35;
-        }
-        .overview-subtitle {
-            color: #4b635d;
+            color: var(--title-color);
+        }}
+        .overview-subtitle {{
+            color: var(--subtitle-color);
             font-size: 1rem;
             margin-bottom: 1.4rem;
-        }
-        .group-card {
-            border: 1px solid #d5e4df;
+        }}
+        .group-card {{
+            border: 1px solid var(--card-border);
             border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 14px 28px rgba(15, 61, 53, 0.08);
-            background: #ffffff;
+            box-shadow: 0 14px 28px var(--card-shadow);
+            background: var(--card-bg);
             margin-bottom: 1rem;
-        }
-        .group-card-header {
-            background: #123f37;
-            color: #ffffff;
+        }}
+        .group-card-header {{
+            background: var(--header-bg);
+            color: var(--header-text);
             padding: 0.7rem 1rem;
             font-size: 1rem;
             font-weight: 800;
             letter-spacing: 0.04em;
             text-transform: uppercase;
-        }
-        .group-table {
+        }}
+        .group-table {{
             width: 100%;
             border-collapse: collapse;
-        }
-        .group-table th {
+        }}
+        .group-table th {{
             text-align: left;
             padding: 0.6rem 0.75rem;
             font-size: 0.72rem;
             text-transform: uppercase;
             letter-spacing: 0.06em;
-            color: #5a726b;
-            border-bottom: 1px solid #e6efec;
-            background: #f7fbf9;
-        }
-        .group-table td {
+            color: var(--table-th-color);
+            border-bottom: 1px solid var(--table-th-border);
+            background: var(--table-th-bg);
+        }}
+        .group-table td {{
             padding: 0.62rem 0.75rem;
             font-size: 0.92rem;
-            border-bottom: 1px solid #edf3f1;
-        }
-        .group-table tr:last-child td {
+            border-bottom: 1px solid var(--table-td-border);
+        }}
+        .group-table tr:last-child td {{
             border-bottom: none;
-        }
-        .qualified-row {
-            background: #eff9f4;
+        }}
+        .qualified-row {{
+            background: var(--qual-row-bg);
             font-weight: 700;
-        }
-        .team-cell {
+        }}
+        .team-cell {{
             white-space: nowrap;
-        }
-        .qual-pill {
+        }}
+        .qual-pill {{
             display: inline-block;
             margin-left: 0.45rem;
             padding: 0.16rem 0.42rem;
             border-radius: 999px;
-            background: #1f8f6a;
+            background: var(--qual-pill-bg);
             color: #ffffff;
             font-size: 0.67rem;
             font-weight: 700;
             vertical-align: middle;
-        }
-        .knockout-shell {
+        }}
+        .knockout-shell {{
             margin-top: 1.25rem;
-            border: 1px solid #d5e4df;
+            border: 1px solid var(--card-border);
             border-radius: 20px;
             padding: 1.2rem 1.2rem 0.8rem;
-            box-shadow: 0 14px 28px rgba(15, 61, 53, 0.08);
-            background: #ffffff;
-        }
-        .knockout-title {
+            box-shadow: 0 14px 28px var(--card-shadow);
+            background: var(--card-bg);
+        }}
+        .knockout-title {{
             font-size: 1.05rem;
             font-weight: 800;
-            color: #123f37;
+            color: var(--knockout-title);
             margin-bottom: 1rem;
             text-transform: uppercase;
             letter-spacing: 0.04em;
-        }
-        .match-card {
-            border: 1px solid #dce8e4;
+        }}
+        .match-card {{
+            border: 1px solid var(--match-card-border);
             border-radius: 16px;
             padding: 0.9rem 1rem;
             margin-bottom: 0.85rem;
-            background: #fcfefd;
-        }
-        .match-round {
-            color: #6f857f;
+            background: var(--match-card-bg);
+        }}
+        .match-round {{
+            color: var(--match-round-text);
             text-transform: uppercase;
             letter-spacing: 0.08em;
             font-size: 0.7rem;
             font-weight: 800;
             margin-bottom: 0.55rem;
-        }
-        .match-line {
+        }}
+        .match-line {{
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 0.75rem;
             padding: 0.22rem 0;
             font-size: 0.96rem;
-        }
-        .match-team {
+        }}
+        .match-team {{
             font-weight: 700;
-            color: #10231f;
-        }
-        .match-meta {
+            color: var(--text-color);
+        }}
+        .match-meta {{
             font-size: 0.78rem;
-            color: #5f756f;
-        }
-        .winner-mark {
-            color: #1f8f6a;
+            color: var(--match-meta-text);
+        }}
+        .winner-mark {{
+            color: var(--winner-mark);
             font-weight: 800;
             margin-left: 0.35rem;
-        }
-        .champion-card {
-            border: 1px solid #dce8e4;
+        }}
+        .champion-card {{
+            border: 1px solid var(--match-card-border);
             border-radius: 22px;
-            background: linear-gradient(180deg, #fffdf5 0%, #ffffff 100%);
+            background: linear-gradient(180deg, var(--champion-bg-start) 0%, var(--champion-bg-end) 100%);
             padding: 1.35rem 1rem;
             text-align: center;
             min-height: 100%;
-        }
-        .champion-trophy {
+        }}
+        .champion-trophy {{
             font-size: 3rem;
             line-height: 1;
             margin-bottom: 0.65rem;
-        }
-        .champion-label {
-            color: #7b6a2d;
+        }}
+        .champion-label {{
+            color: var(--champion-label);
             text-transform: uppercase;
             letter-spacing: 0.1em;
             font-size: 0.72rem;
             font-weight: 800;
-        }
-        .champion-team {
+        }}
+        .champion-team {{
             margin-top: 0.4rem;
             font-size: 1.25rem;
             font-weight: 800;
-            color: #10231f;
-        }
-        .champion-odds {
+            color: var(--text-color);
+        }}
+        .champion-odds {{
             margin-top: 0.3rem;
-            color: #556b65;
+            color: var(--champion-odds);
             font-size: 0.9rem;
-        }
-        .snapshots-note {
-            color: #5d736d;
+        }}
+        .snapshots-note {{
+            color: var(--subtitle-color);
             font-size: 0.9rem;
             margin-top: 0.8rem;
-        }
-        .flag-icon {
+        }}
+        .flag-icon {{
             height: 1.1em;
             width: 1.5em;
             border-radius: 2px;
             vertical-align: text-bottom;
             margin-right: 0.3em;
             object-fit: cover;
-            border: 1px solid #dce8e4;
-        }
+            border: 1px solid var(--card-border);
+        }}
+        /* ── Full Knockout Bracket ── */
+        .bracket-scroll {{
+            overflow-x: auto;
+            padding-bottom: 1rem;
+        }}
+        .bracket-container {{
+            display: flex;
+            align-items: stretch;
+            gap: 0;
+            min-width: max-content;
+        }}
+        .bracket-round {{
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            min-width: 200px;
+            padding: 0 6px;
+        }}
+        .bracket-round-title {{
+            text-align: center;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--knockout-title);
+            padding: 0.4rem 0;
+            margin-bottom: 0.3rem;
+            background: var(--bracket-title-bg);
+            border-radius: 8px;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }}
+        
+        .bracket-pair {{
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            position: relative;
+            padding-right: 16px;
+            margin: 4px 0;
+            flex-grow: 1;
+        }}
+        .bracket-round:not(:last-child) .bracket-pair::after {{
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 25%;
+            bottom: 25%;
+            width: 16px;
+            border-right: 2px solid var(--line-color);
+            border-top: 2px solid var(--line-color);
+            border-bottom: 2px solid var(--line-color);
+            border-top-right-radius: 6px;
+            border-bottom-right-radius: 6px;
+        }}
+        .bracket-round:not(:first-child) .bracket-match::before {{
+            content: '';
+            position: absolute;
+            left: -22px;
+            top: 50%;
+            width: 16px;
+            height: 2px;
+            background: var(--line-color);
+        }}
+
+        .bracket-match {{
+            border: 1px solid var(--match-card-border);
+            border-radius: 10px;
+            margin: 4px 0;
+            background: var(--match-card-bg);
+            overflow: hidden;
+            font-size: 0.8rem;
+            position: relative;
+            transition: box-shadow 0.15s ease;
+        }}
+        .bracket-match:hover {{
+            box-shadow: 0 4px 12px var(--bracket-match-hover);
+        }}
+        .bracket-team-row {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 5px 8px;
+            gap: 4px;
+            border-bottom: 1px solid var(--table-td-border);
+        }}
+        .bracket-team-row:last-child {{
+            border-bottom: none;
+        }}
+        .bracket-team-row.is-winner {{
+            background: var(--qual-row-bg);
+            font-weight: 700;
+        }}
+        .bracket-team-name {{
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+            color: var(--text-color);
+        }}
+        .bracket-team-name .flag-icon {{
+            height: 0.95em;
+            width: 1.3em;
+            flex-shrink: 0;
+        }}
+        .bracket-score {{
+            font-weight: 700;
+            color: var(--text-color);
+            min-width: 16px;
+            text-align: center;
+        }}
+        .bracket-path {{
+            display: inline-block;
+            margin-left: 4px;
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            background: var(--bracket-title-bg);
+            color: var(--match-round-text);
+            white-space: nowrap;
+            vertical-align: middle;
+            letter-spacing: 0.03em;
+        }}
+        .bracket-annex-c {{
+            text-align: center;
+            font-size: 0.55rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--match-round-text);
+            padding: 2px 0;
+            border-bottom: 1px solid var(--table-td-border);
+        }}
+        .bracket-champion-banner {{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 180px;
+            padding: 0 10px;
+            position: relative;
+        }}
+        /* Line from Semi to Final */
+        .bracket-champion-banner::before {{
+            content: '';
+            position: absolute;
+            left: -16px;
+            top: 50%;
+            width: 16px;
+            height: 2px;
+            background: var(--line-color);
+        }}
+        .bracket-champion-inner {{
+            border: 2px solid var(--champion-label);
+            border-radius: 16px;
+            background: linear-gradient(180deg, var(--champion-bg-start) 0%, var(--card-bg) 100%);
+            padding: 1rem 1.2rem;
+            text-align: center;
+            width: 100%;
+        }}
+        .bracket-champion-inner .champion-trophy {{
+            font-size: 2.2rem;
+        }}
+        .bracket-champion-inner .champion-label {{
+            font-size: 0.65rem;
+        }}
+        .bracket-champion-inner .champion-team {{
+            font-size: 1rem;
+        }}
+        .bracket-champion-inner .champion-odds {{
+            font-size: 0.78rem;
+        }}
+        .bracket-third-place {{
+            margin-top: 0.6rem;
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 6px;
+            width: 100%;
+            background: var(--match-card-bg);
+        }}
+        .bracket-third-label {{
+            text-align: center;
+            font-size: 0.6rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--champion-label);
+            margin-bottom: 3px;
+        }}
         </style>
         """,
         unsafe_allow_html=True,
     )
+
 
 
 def _local_flag_b64(team: str) -> str:
@@ -266,7 +536,8 @@ def _render_group_card(st: Any, group_id: str, rows: list[dict[str, Any]]) -> No
             </tr>
             """
         )
-    st.markdown(
+    _render_html(
+        st,
         f"""
         <div class="group-card">
             <div class="group-card-header">Group {group_id}</div>
@@ -285,9 +556,7 @@ def _render_group_card(st: Any, group_id: str, rows: list[dict[str, Any]]) -> No
                 </tbody>
             </table>
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        """)
 
 
 def _render_match_card(st: Any, round_label: str, match: dict[str, Any]) -> None:
@@ -307,7 +576,8 @@ def _render_match_card(st: Any, round_label: str, match: dict[str, Any]) -> None
             f'</div>'
         )
 
-    st.markdown(
+    _render_html(
+        st,
         f"""
         <div class="match-card">
             <div class="match-round">{round_label}</div>
@@ -321,9 +591,157 @@ def _render_match_card(st: Any, round_label: str, match: dict[str, Any]) -> None
                 | top win probability {probability:.1%}
             </div>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """)
+
+
+def _render_bracket_match_html(match: dict[str, Any]) -> str:
+    """Return HTML for a single bracket match cell."""
+    home = match.get("home_team", "TBD")
+    away = match.get("away_team", "TBD")
+    winner = match.get("winner", "")
+    score = match.get("score", {})
+    home_goals = score.get("home", "-")
+    away_goals = score.get("away", "-")
+    home_cls = ' is-winner' if home == winner else ''
+    away_cls = ' is-winner' if away == winner else ''
+    home_flag = _local_flag_html(home) if home != "TBD" else ""
+    away_flag = _local_flag_html(away) if away != "TBD" else ""
+
+    # Path labels (e.g., "1A", "2B", "3D", "WM74")
+    home_path = match.get("home_path", "")
+    away_path = match.get("away_path", "")
+    home_path_html = f'<span class="bracket-path">{home_path}</span>' if home_path else ""
+    away_path_html = f'<span class="bracket-path">{away_path}</span>' if away_path else ""
+
+    # Annex C match number header (e.g., "M74")
+    annex_c = match.get("annex_c", "")
+    annex_header = f'<div class="bracket-annex-c">{annex_c}</div>' if annex_c else ""
+
+    # Generate a unique ID for this match
+    match_id = match.get("match_id", f"{home}_{away}").replace(" ", "_")
+
+    # The javascript safely finds the hidden stream button by its text content and clicks it
+    onclick_js = (
+        f"var btns = Array.from(window.parent.document.querySelectorAll('button')); "
+        f"var btn = btns.find(b => b.innerText.includes('hidden_{match_id}')); "
+        f"if (btn) btn.click();"
     )
+
+    return (
+        f'<div class="bracket-match" style="cursor: pointer;" onclick="{onclick_js}" title="Click to analyze match">'
+        f'{annex_header}'
+        f'<div class="bracket-team-row{home_cls}">'
+        f'<span class="bracket-team-name">{home_flag}{home}{home_path_html}</span>'
+        f'<span class="bracket-score">{home_goals}</span>'
+        f'</div>'
+        f'<div class="bracket-team-row{away_cls}">'
+        f'<span class="bracket-team-name">{away_flag}{away}{away_path_html}</span>'
+        f'<span class="bracket-score">{away_goals}</span>'
+        f'</div>'
+        f'</div>'
+    )
+
+
+def _render_knockout_bracket(st: Any, bracket: dict[str, Any], champion_odds: dict[str, float]) -> None:
+    """Render the full knockout bracket from R32 to Final as a horizontally scrollable tree."""
+
+    rounds_config = [
+        ("Round of 32", bracket.get("round_of_32", [])),
+        ("Round of 16", bracket.get("round_of_16", [])),
+        ("Quarter-finals", bracket.get("quarter_finals", [])),
+        ("Semi-finals", bracket.get("semi_finals", [])),
+    ]
+    final_match = bracket.get("final")
+    third_place = bracket.get("third_place")
+    champion = max(champion_odds, key=champion_odds.get) if champion_odds else None
+
+    # Build round columns HTML
+    rounds_html = []
+    for title, matches in rounds_config:
+        if not matches:
+            continue
+            
+        match_pairs_html = []
+        for i in range(0, len(matches), 2):
+            pair = matches[i:i+2]
+            pair_html = "".join(_render_bracket_match_html(m) for m in pair)
+            match_pairs_html.append(f'<div class="bracket-pair">{pair_html}</div>')
+            
+        rounds_html.append(
+            f'<div class="bracket-round">'
+            f'<div class="bracket-round-title">{title}</div>'
+            f'{"".join(match_pairs_html)}'
+            f'</div>'
+        )
+
+    # Final + Champion column
+    champion_flag = _local_flag_html(champion) if champion else ""
+    champion_prob = champion_odds.get(champion, 0.0) if champion else 0.0
+    final_html = _render_bracket_match_html(final_match) if final_match else ""
+    third_html = ""
+    if third_place:
+        third_html = (
+            f'<div class="bracket-third-place">'
+            f'<div class="bracket-third-label">3rd Place</div>'
+            f'{_render_bracket_match_html(third_place)}'
+            f'</div>'
+        )
+
+    champion_col_html = (
+        f'<div class="bracket-champion-banner">'
+        f'<div class="bracket-round-title">Final</div>'
+        f'{final_html}'
+        f'<div class="bracket-champion-inner" style="margin-top:8px;">'
+        f'<div class="champion-trophy">{champion_flag if champion else "🏆"}</div>'
+        f'<div class="champion-label">Projected Champion</div>'
+        f'<div class="champion-team">{champion_flag} {champion if champion else "TBD"}</div>'
+        f'<div class="champion-odds">{champion_prob:.1%} title probability</div>'
+        f'</div>'
+        f'{third_html}'
+        f'</div>'
+    )
+    rounds_html.append(champion_col_html)
+
+    full_html = (
+        '<div class="bracket-scroll">'
+        '<div class="bracket-container">'
+        + "".join(rounds_html)
+        + '</div></div>'
+    )
+    st.markdown(full_html, unsafe_allow_html=True)
+    
+    # Render hidden Streamlit buttons to handle JS clicks from the bracket HTML.
+    # We put them in a dedicated container with a marker, and hide all element 
+    # containers that follow the marker within that container.
+    all_matches = []
+    for title, matches in rounds_config:
+        if matches:
+            all_matches.extend(matches)
+    if final_match:
+        all_matches.append(final_match)
+    if third_place:
+        all_matches.append(third_place)
+
+    with st.container():
+        st.markdown(
+            """
+            <div class="hidden-button-marker"></div>
+            <style>
+            /* Hide all Streamlit element containers that come AFTER the marker's container, within this specific parent */
+            div[data-testid="stElementContainer"]:has(.hidden-button-marker) ~ div[data-testid="stElementContainer"] {
+                display: none !important;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+        for m in all_matches:
+            home = m.get("home_team", "TBD")
+            away = m.get("away_team", "TBD")
+            if home != "TBD" and away != "TBD":
+                match_id = m.get("match_id", f"{home}_{away}").replace(" ", "_")
+                if st.button(f"hidden_{match_id}", key=f"btn_hidden_{match_id}"):
+                    show_match_analysis_modal(home, away)
 
 
 def _render_overview(st: Any) -> None:
@@ -334,21 +752,15 @@ def _render_overview(st: Any) -> None:
     snapshots = list_snapshot_timeline()
     champion_odds = bracket_data.get("champion_odds", {})
     bracket = bracket_data.get("bracket", {})
-    semi_finals = bracket.get("semi_finals", [])
-    final_match = bracket.get("final")
-    champion = max(champion_odds, key=champion_odds.get) if champion_odds else None
 
-    st.markdown(
+    _render_html(
+        st,
         """
-        <div class="overview-shell">
-            <div class="overview-title">Tournament Overview</div>
-            <div class="overview-subtitle">
-                Group leaders and qualifiers at the top, knockout path underneath.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+<div class="overview-shell">
+<div class="overview-title">Tournament Overview</div>
+<div class="overview-subtitle">Group leaders and qualifiers at the top, knockout bracket underneath.</div>
+</div>
+        """)
 
     if standings:
         groups = sorted(standings.items())
@@ -360,43 +772,247 @@ def _render_overview(st: Any) -> None:
     else:
         st.info("No standings snapshot is available yet.")
 
-    st.markdown('<div class="knockout-shell"><div class="knockout-title">Knockout Picture</div></div>', unsafe_allow_html=True)
-    left_col, center_col, right_col = st.columns([1.25, 0.9, 1.25])
+    _render_html(st, '<div class="knockout-shell"><div class="knockout-title">Knockout Bracket</div></div>')
 
-    with left_col:
-        if semi_finals:
-            _render_match_card(st, "Semi-final 1", semi_finals[0])
-        else:
-            st.info("No semi-final projection available.")
-
-    with center_col:
-        champion_flag = _local_flag_html(champion) if champion else "🏆"
-        champion_probability = champion_odds.get(champion, 0.0) if champion else 0.0
-        st.markdown(
-            f"""
-            <div class="champion-card">
-                <div class="champion-trophy">{champion_flag if champion else "🏆"}</div>
-                <div class="champion-label">Projected Champion</div>
-                <div class="champion-team">{champion_flag} {champion if champion else "TBD"}</div>
-                <div class="champion-odds">{champion_probability:.1%} title probability</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        if final_match:
-            _render_match_card(st, "Final", final_match)
-
-    with right_col:
-        if len(semi_finals) > 1:
-            _render_match_card(st, "Semi-final 2", semi_finals[1])
-        else:
-            st.info("No second semi-final projection available.")
+    if bracket:
+        _render_knockout_bracket(st, bracket, champion_odds)
+    else:
+        st.info("No knockout bracket data available yet.")
 
     if snapshots:
-        st.markdown(
-            f'<div class="snapshots-note">Snapshots loaded: {", ".join(snapshots)}</div>',
-            unsafe_allow_html=True,
+        _render_html(st, f'<div class="snapshots-note">Snapshots loaded: {", ".join(snapshots)}</div>')
+
+
+
+def show_match_analysis_modal(home: str, away: str):
+    import streamlit as st
+    from src.simulation.penalties import penalty_home_probability
+
+    @st.cache_resource
+    def get_cached_model():
+        from src.models.train import load_or_train_ensemble
+        return load_or_train_ensemble()
+        
+    model = get_cached_model()
+    
+    @st.dialog(f"Match Analysis", width="large")
+    def _modal():
+        st.markdown(f"### {_local_flag_html(home)} {home} vs {_local_flag_html(away)} {away}", unsafe_allow_html=True)
+        st.write(f"**Prediction Details**")
+        
+        prediction = model.predict_match(home, away)
+        probs = prediction["outcome_probabilities"]
+        score = prediction["predicted_score"]
+        penalty_home = penalty_home_probability(
+            prediction["features"]["home_penalty_win_rate"],
+            prediction["features"]["away_penalty_win_rate"],
+            prediction["features"]["elo_diff"],
         )
+        home_advance = probs["home_win"] + probs["draw"] * penalty_home
+        away_advance = probs["away_win"] + probs["draw"] * (1.0 - penalty_home)
+        
+        st.write(f"**Predicted Score**: {home} {score['home']} - {score['away']} {away}")
+        st.write(f"**Win Probabilities**: {home} ({probs['home_win']:.1%}) | Draw ({probs['draw']:.1%}) | {away} ({probs['away_win']:.1%})")
+        st.write(f"**If Knockout: Advance Odds**: {home} ({home_advance:.1%}) | {away} ({away_advance:.1%})")
+        st.write(f"**Confidence**: {prediction['confidence']['label']} ({prediction['confidence']['overall']}/100)")
+        
+        st.markdown("""
+        <style>
+        div[data-testid="stExpander"]:has(summary:contains("How is this prediction made?")) {
+            border: 2px solid #ffbf00;
+            background-color: rgba(255, 191, 0, 0.05);
+            border-radius: 8px;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        with st.expander("How is this prediction made?", expanded=False):
+            st.markdown("**Key Factors Driving This Prediction**")
+            
+            home_stats = model.team_lookup.get(home, {})
+            away_stats = model.team_lookup.get(away, {})
+            reasons = []
+            
+            elo_diff = home_stats.get('elo', 0) - away_stats.get('elo', 0)
+            if abs(elo_diff) > 100:
+                favored = home if elo_diff > 0 else away
+                reasons.append(f"**Elo Rating Advantage**: {favored} holds a significantly higher historical Elo rating (+{int(abs(elo_diff))} points).")
+                
+            val_diff = home_stats.get('squad_market_value', 0) - away_stats.get('squad_market_value', 0)
+            val_diff_m = val_diff / 1e6
+            if abs(val_diff_m) > 50:
+                favored = home if val_diff_m > 0 else away
+                reasons.append(f"**Squad Quality**: {favored}'s squad has a significantly higher market value (+€{int(abs(val_diff_m))}M), reflecting superior talent and depth.")
+                
+            form_diff = home_stats.get('form_points_avg', 0) - away_stats.get('form_points_avg', 0)
+            if abs(form_diff) > 0.5:
+                favored = home if form_diff > 0 else away
+                reasons.append(f"**Recent Momentum**: {favored} is entering the match in much better recent form.")
+                
+            h2h = get_head_to_head(home, away)
+            summary = h2h.get("summary", {})
+            if summary and summary.get("total_matches", 0) >= 3:
+                h_wins = summary.get(home + '_wins', 0)
+                a_wins = summary.get(away + '_wins', 0)
+                if h_wins > a_wins and (h_wins - a_wins) >= 2:
+                    reasons.append(f"**Historical Dominance**: {home} has historically dominated this fixture, winning {h_wins} out of {summary.get('total_matches')} meetings.")
+                elif a_wins > h_wins and (a_wins - h_wins) >= 2:
+                    reasons.append(f"**Historical Dominance**: {away} has historically dominated this fixture, winning {a_wins} out of {summary.get('total_matches')} meetings.")
+                    
+            if not reasons:
+                reasons.append("This is an extremely tightly contested match with no major disparities in Elo, squad value, or form. The prediction leans on minor tactical, depth, or home-field advantages.")
+                
+            for r in reasons:
+                st.markdown(f"- {r}")
+                
+            st.markdown("*(Powered by an Adaptive Ensemble Model combining XGBoost, Random Forest, Poisson Regression, and Elo Ratings)*")
+        
+        st.divider()
+        
+        col1, col2 = st.columns([1, 1])
+        
+        with col1:
+            st.subheader("Head-to-Head History")
+            if summary:
+                st.write(f"**Total Matches**: {summary.get('total_matches', 0)}")
+                st.write(f"**{home} Wins**: {summary.get(home + '_wins', 0)} | **{away} Wins**: {summary.get(away + '_wins', 0)} | **Draws**: {summary.get('draws', 0)}")
+                
+                if h2h.get("recent_matches"):
+                    st.write("**Recent Matches:**")
+                    for m in h2h["recent_matches"]:
+                        st.caption(f"{m['date']} - {m['tournament']}: {m['home_team']} {m['home_goals']} - {m['away_goals']} {m['away_team']}")
+            else:
+                st.info("No historical matches found between these teams.")
+                
+        with col2:
+            st.subheader("Team Comparison")
+            
+            import plotly.graph_objects as go
+            
+            metrics = [
+                ("Elo Rating", "elo"),
+                ("Squad Rating", "squad_avg_rating"),
+                ("Starting XI Rating", "starting_xi_rating"),
+                ("Form", "form_points_avg"),
+                ("Attack", "attack_strength"),
+                ("Defense", "defense_strength")
+            ]
+            
+            y_labels = []
+            home_vals = []
+            away_vals = []
+            
+            for label, key in metrics:
+                h_val = home_stats.get(key, 0)
+                a_val = away_stats.get(key, 0)
+                
+                y_labels.append(label)
+                home_vals.append(h_val)
+                away_vals.append(a_val)
+                
+            fig = go.Figure()
+            fig.add_trace(go.Bar(
+                y=y_labels,
+                x=[-x for x in home_vals], # Negative to plot left
+                name=home,
+                orientation='h',
+                marker=dict(color='#1f8f6a'),
+                text=[f"{x:.1f}" for x in home_vals],
+                textposition='outside'
+            ))
+            fig.add_trace(go.Bar(
+                y=y_labels,
+                x=away_vals,
+                name=away,
+                orientation='h',
+                marker=dict(color='#123f37'),
+                text=[f"{x:.1f}" for x in away_vals],
+                textposition='outside'
+            ))
+            
+            fig.update_layout(
+                barmode='relative',
+                title_text="Team Strengths Comparison",
+                yaxis=dict(autorange="reversed"),
+                xaxis=dict(showticklabels=False),
+                margin=dict(l=0, r=0, t=30, b=0),
+                height=300,
+                showlegend=False
+            )
+            
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+            
+        with st.expander("Squad Comparison", expanded=False):
+            from src.config import ROSTERS_FILE
+            if ROSTERS_FILE.exists():
+                roster_payload = load_json(ROSTERS_FILE, default={}) or {}
+                roster_rows: list[dict[str, Any]] = []
+
+                if isinstance(roster_payload, dict):
+                    for team_name, players in roster_payload.items():
+                        if not isinstance(players, list):
+                            continue
+                        for player in players:
+                            if not isinstance(player, dict):
+                                continue
+                            roster_rows.append(
+                                {
+                                    "team": team_name,
+                                    "short_name": player.get("short_name", player.get("name", "Unknown")),
+                                    "club_name": player.get("club_name", player.get("club", "Unknown")),
+                                    "overall": player.get("overall", player.get("rating", 0)),
+                                    "market_value_eur": player.get("market_value_eur", player.get("value", 0)),
+                                }
+                            )
+                elif isinstance(roster_payload, list):
+                    roster_rows = [row for row in roster_payload if isinstance(row, dict)]
+
+                rosters = pd.DataFrame(roster_rows)
+                if not rosters.empty:
+                    for column in ("team", "short_name", "club_name"):
+                        if column not in rosters:
+                            rosters[column] = ""
+                    for column in ("overall", "market_value_eur"):
+                        if column not in rosters:
+                            rosters[column] = 0
+                        rosters[column] = pd.to_numeric(rosters[column], errors="coerce").fillna(0)
+                
+                def render_squad(team_name):
+                    team_roster = rosters[rosters['team'] == team_name]
+                    if not team_roster.empty:
+                        # Compute overall value
+                        total_value = team_roster['market_value_eur'].sum()
+                        avg_rating = team_roster['overall'].mean()
+                        val_m = total_value / 1_000_000
+                        st.markdown(f"**Total Squad Value**: €{val_m:,.1f}M  |  **Avg Rating**: {avg_rating:.1f}")
+                        
+                        display_cols = ['short_name', 'club_name', 'overall', 'market_value_eur']
+                        df_show = team_roster[display_cols].sort_values('overall', ascending=False)
+                        st.dataframe(
+                            df_show, 
+                            hide_index=True,
+                            column_config={
+                                "short_name": "Player",
+                                "club_name": "Club",
+                                "overall": st.column_config.NumberColumn("Rating", format="%d"),
+                                "market_value_eur": st.column_config.NumberColumn("Value (€)", format="%d")
+                            },
+                            height=300
+                        )
+                    else:
+                        st.info("No squad data available.")
+                        
+                sc1, sc2 = st.columns(2)
+                with sc1:
+                    st.markdown(f"#### {home}")
+                    render_squad(home)
+                with sc2:
+                    st.markdown(f"#### {away}")
+                    render_squad(away)
+
+    # actually invoke the dialog
+    _modal()
+
 
 
 def main() -> None:
@@ -408,9 +1024,18 @@ def main() -> None:
         raise SystemExit("Streamlit is not installed. Install requirements to use the dashboard.") from exc
 
     st.set_page_config(page_title="World Cup Prediction Baseline", layout="wide")
-    _inject_styles(st)
-    st.title("World Cup Prediction Baseline")
-    st.caption("Offline demo pipeline with adaptive snapshots.")
+    
+    # Place toggle in the sidebar or at the top of the page. Top of page is fine.
+    col1, col2 = st.columns([0.85, 0.15])
+    with col1:
+        st.title("World Cup Prediction Baseline")
+        st.caption("Offline demo pipeline with adaptive snapshots.")
+    with col2:
+        st.write("")
+        st.write("") # padding
+        dark_mode = st.toggle("🌙 Dark Mode", value=False)
+        
+    _inject_styles(st, dark_mode=dark_mode)
 
     overview, standings_tab, predictions_tab, accuracy_tab, compare_tab = st.tabs(
         ["Overview", "Standings", "Predictions", "Accuracy", "Compare"]
@@ -447,13 +1072,24 @@ def main() -> None:
         if table:
             frame = pd.DataFrame(table)
             
+            from src.config import RAW_FIXTURES_FILE
+            if RAW_FIXTURES_FILE.exists():
+                fixtures = pd.read_csv(RAW_FIXTURES_FILE)
+                if "date" in fixtures.columns and "match_id" in fixtures.columns:
+                    frame = frame.merge(fixtures[["match_id", "date"]], on="match_id", how="left")
+                    frame["date"] = pd.to_datetime(frame["date"]).dt.strftime("%b %d, %H:%M")
+            
             # Keep original names for the callback before mapping flags
             clean_frame = frame.copy()
             
             frame["home_flag"] = frame["home_team"].apply(_local_flag_b64)
             frame["away_flag"] = frame["away_team"].apply(_local_flag_b64)
             
-            ordered_cols = ["home_flag", "home_team", "away_flag", "away_team"]
+            ordered_cols = []
+            if "date" in frame.columns:
+                ordered_cols.append("date")
+            ordered_cols.extend(["home_flag", "home_team", "away_flag", "away_team"])
+            
             for c in frame.columns:
                 if c not in ordered_cols and c not in ["home_flag", "away_flag"]:
                     ordered_cols.append(c)
@@ -465,6 +1101,7 @@ def main() -> None:
                 on_select="rerun",
                 selection_mode="single-row",
                 column_config={
+                    "date": "Date",
                     "home_flag": st.column_config.ImageColumn("Home Flag", width="small"),
                     "away_flag": st.column_config.ImageColumn("Away Flag", width="small"),
                     "home_team": "Home Team",
@@ -477,122 +1114,7 @@ def main() -> None:
                 home = clean_frame.iloc[selected_idx]["home_team"]
                 away = clean_frame.iloc[selected_idx]["away_team"]
                 
-                @st.cache_resource
-                def get_cached_model():
-                    from src.models.train import load_or_train_ensemble
-                    return load_or_train_ensemble()
-                    
-                model = get_cached_model()
-                
-                @st.dialog(f"Match Analysis", width="large")
-                def match_analysis_modal():
-                    st.markdown(f"### {_local_flag_html(home)} {home} vs {_local_flag_html(away)} {away}", unsafe_allow_html=True)
-                    st.write(f"**Prediction Details**")
-                    
-                    prediction = model.predict_match(home, away)
-                    probs = prediction["outcome_probabilities"]
-                    score = prediction["predicted_score"]
-                    
-                    st.write(f"**Predicted Score**: {home} {score['home']} - {score['away']} {away}")
-                    st.write(f"**Win Probabilities**: {home} ({probs['home_win']:.1%}) | Draw ({probs['draw']:.1%}) | {away} ({probs['away_win']:.1%})")
-                    st.write(f"**Confidence**: {prediction['confidence']['label']} ({prediction['confidence']['overall']}/100)")
-                    
-                    st.divider()
-                    
-                    col1, col2 = st.columns([1, 1])
-                    
-                    with col1:
-                        st.subheader("Head-to-Head History")
-                        h2h = get_head_to_head(home, away)
-                        summary = h2h.get("summary", {})
-                        if summary:
-                            st.write(f"**Total Matches**: {summary.get('total_matches', 0)}")
-                            st.write(f"**{home} Wins**: {summary.get(home + '_wins', 0)} | **{away} Wins**: {summary.get(away + '_wins', 0)} | **Draws**: {summary.get('draws', 0)}")
-                            
-                            if h2h.get("recent_matches"):
-                                st.write("**Recent Matches:**")
-                                for m in h2h["recent_matches"]:
-                                    st.caption(f"{m['date']} - {m['tournament']}: {m['home_team']} {m['home_goals']} - {m['away_goals']} {m['away_team']}")
-                        else:
-                            st.info("No historical matches found between these teams.")
-                            
-                    with col2:
-                        st.subheader("Team Comparison")
-                        
-                        import plotly.graph_objects as go
-                        
-                        home_stats = model.team_lookup.get(home, {})
-                        away_stats = model.team_lookup.get(away, {})
-                        
-                        metrics = [
-                            ("Elo Rating", "elo"),
-                            ("Squad Rating", "squad_avg_rating"),
-                            ("Starting XI Rating", "starting_xi_rating"),
-                            ("Form", "form_points_avg"),
-                            ("Attack", "attack_strength"),
-                            ("Defense", "defense_strength")
-                        ]
-                        
-                        y_labels = []
-                        home_vals = []
-                        away_vals = []
-                        
-                        for label, key in metrics:
-                            h_val = home_stats.get(key, 0)
-                            a_val = away_stats.get(key, 0)
-                            
-                            # Normalize for display to make the bars comparable
-                            max_val = max(h_val, a_val) if max(h_val, a_val) > 0 else 1
-                            
-                            y_labels.append(label)
-                            home_vals.append(h_val)
-                            away_vals.append(a_val)
-                            
-                        fig = go.Figure()
-                        fig.add_trace(go.Bar(
-                            y=y_labels,
-                            x=[-x for x in home_vals], # Negative to plot left
-                            name=home,
-                            orientation='h',
-                            marker=dict(color='#1f8f6a'),
-                            text=[f"{x:.1f}" for x in home_vals],
-                            textposition='outside'
-                        ))
-                        fig.add_trace(go.Bar(
-                            y=y_labels,
-                            x=away_vals,
-                            name=away,
-                            orientation='h',
-                            marker=dict(color='#123f37'),
-                            text=[f"{x:.1f}" for x in away_vals],
-                            textposition='outside'
-                        ))
-                        
-                        fig.update_layout(
-                            barmode='relative',
-                            title_text="Team Strengths Comparison",
-                            yaxis=dict(autorange="reversed"),
-                            xaxis=dict(showticklabels=False),
-                            margin=dict(l=0, r=0, t=30, b=0),
-                            height=300
-                        )
-                        st.plotly_chart(fig, use_container_width=True)
-                        
-                    st.divider()
-                    st.subheader("How this is computed")
-                    st.markdown("""
-                    This prediction is generated by an **Ensemble Model** combining:
-                    - **Poisson Regression** (predicts exact scorelines based on attack/defense strengths)
-                    - **XGBoost & Random Forest** (predicts win/draw/loss using non-linear squad features)
-                    - **Elo System** (baseline strength ratings)
-                    
-                    The base probabilities are then adjusted based on contextual factors like *squad market value*, *travel fatigue*, *weather severity*, and *injury load*.
-                    """)
-                    
-                match_analysis_modal()
-                
-        else:
-            st.info("Prediction outputs have not been generated yet.")
+                show_match_analysis_modal(home, away)
 
     with accuracy_tab:
         st.subheader("Prediction Ledger Summary")

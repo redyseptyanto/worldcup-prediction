@@ -47,6 +47,25 @@ def load_fixtures() -> pd.DataFrame:
     return clean_fixtures(frame)
 
 
+def load_penalties() -> pd.DataFrame:
+    """Load historical penalty data."""
+    
+    from src.config import RAW_PENALTIES_FILE
+    if not RAW_PENALTIES_FILE.exists():
+        return pd.DataFrame(columns=["team", "shootouts_won", "shootouts_lost", "penalty_win_rate"])
+    return pd.read_csv(RAW_PENALTIES_FILE)
+
+
+def load_official_rosters() -> pd.DataFrame:
+    """Load scraped official rosters if available."""
+    
+    from src.config import SETTINGS
+    rosters_file = SETTINGS.raw_dir / "players" / "official_2026_rosters.csv"
+    if not rosters_file.exists():
+        return pd.DataFrame(columns=["team", "player_name", "name_norm"])
+    return pd.read_csv(rosters_file)
+
+
 def initialize_state_store() -> dict[str, Any]:
     """Create file-backed state and ledger stores used by the baseline."""
 

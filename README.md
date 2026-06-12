@@ -116,6 +116,17 @@ make compare-snapshots from=000_baseline to=001_after_grp-a-m1
 make rollback-to snapshot=000_baseline
 ```
 
+## How is a prediction made?
+
+The prediction is powered by an Adaptive Ensemble Model that combines multiple machine learning techniques (XGBoost, Random Forest, Poisson Regression, and Elo Ratings) to simulate match outcomes.
+
+The most heavily weighted parameters affecting the match result are:
+1. **Elo Rating & Form**: A historical measure of a team's true strength and recent momentum based on past results and opponent difficulty.
+2. **Squad Quality & Value**: The combined FIFA attributes and Transfermarkt valuations of the official 26-man roster, reflecting the raw talent and depth of the team.
+3. **Head-to-Head History**: Past performance between these specific nations.
+4. **Tactical & Injury Factors**: Current injury loads, international experience (caps), and tactical balance.
+5. **Tournament Context**: The stage of the tournament (e.g., knockout matches are typically tighter and lower-scoring than group stage matches).
+
 ## API Endpoints
 
 The implemented API currently exposes:

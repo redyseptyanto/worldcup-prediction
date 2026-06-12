@@ -153,9 +153,57 @@ def build_player_factor_features() -> pd.DataFrame:
     )
     roster["matches"] = roster["matches"].fillna(0)
 
+    from src.data.loaders import load_official_rosters
+    official_rosters = load_official_rosters()
+
     feature_rows = []
+    roster_dict = {}
     for team, squad in roster.groupby("team"):
-        squad = squad.sort_values(["overall_rating", "value"], ascending=False).head(26).copy()
+        official_team = official_rosters[official_rosters["team"] == team]
+        if not official_team.empty:
+            matched_indices = []
+            for name in official_team["name_norm"]:
+                wiki_tokens = set(name.split())
+                best_match_idx = None
+                
+                for idx, row in squad.iterrows():
+                    if idx in matched_indices:
+                        continue
+                    norm_full = str(getattr(row, "name_norm", "")).lower()
+                    norm_home = str(getattr(row, "home_name_norm", "")).lower()
+                    full_tokens = set(norm_full.split())
+                    home_tokens = set(norm_home.split())
+                    
+                    if (len(wiki_tokens & full_tokens) >= max(1, len(wiki_tokens)-1) or 
+                        len(wiki_tokens & home_tokens) >= max(1, len(wiki_tokens)-1)):
+                        best_match_idx = idx
+                        break
+                        
+                if best_match_idx is not None:
+                    matched_indices.append(best_match_idx)
+            
+            matched_squad = squad.loc[matched_indices]
+            unmatched_squad = squad.drop(matched_indices).sort_values(["overall_rating", "value"], ascending=False)
+            needed_spots = 26 - len(matched_squad)
+            if needed_spots > 0:
+                matched_squad = pd.concat([matched_squad, unmatched_squad.head(needed_spots)])
+            squad = matched_squad.copy()
+        else:
+            squad = squad.sort_values(["overall_rating", "value"], ascending=False).head(26).copy()
+        
+        # Save individual roster data
+        squad_players = []
+        for row in squad.itertuples():
+            squad_players.append({
+                "name": getattr(row, "name_norm", "Unknown").title(),
+                "club": str(getattr(row, "club_name", "Unknown")),
+                "position": getattr(row, "role_bucket", "Unknown").title(),
+                "rating": int(getattr(row, "overall_rating", 70)),
+                "value": float(getattr(row, "transfermarkt_value", 0.0)),
+                "caps": int(getattr(row, "matches", 0)),
+            })
+        roster_dict[team] = sorted(squad_players, key=lambda x: x["rating"], reverse=True)
+        
         role_counts = Counter(squad["role_bucket"])
         total_players = max(len(squad), 1)
         defenders = role_counts.get("defender", 0) / total_players
@@ -195,4 +243,4 @@ def build_player_factor_features() -> pd.DataFrame:
                 "squad_versatility": float(squad["positions_count"].replace(0, 1).mean()),
             }
         )
-    return pd.DataFrame(feature_rows).sort_values("team").reset_index(drop=True)
+    return pd.DataFrame(feature_rows).sort_values("team").reset_index(drop=True), roster_dict

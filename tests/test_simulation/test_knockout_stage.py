@@ -1,0 +1,81 @@
+from __future__ import annotations
+
+from typing import Any
+
+from src.simulation.knockout_stage import simulate_knockout_stage
+
+
+class StubKnockoutModel:
+    def __init__(self, strengths: dict[str, float]) -> None:
+        self.strengths = strengths
+
+    def predict_match(self, home_team: str, away_team: str, match_id: str | None = None) -> dict[str, Any]:
+        home_strength = self.strengths[home_team]
+        away_strength = self.strengths[away_team]
+        home_favored = home_strength >= away_strength
+        probs = (
+            {"home_win": 0.65, "draw": 0.2, "away_win": 0.15}
+            if home_favored
+            else {"home_win": 0.15, "draw": 0.2, "away_win": 0.65}
+        )
+        predicted_score = (
+            {"home": 2, "away": 1}
+            if home_favored
+            else {"home": 1, "away": 2}
+        )
+        return {
+            "match_id": match_id,
+            "home_team": home_team,
+            "away_team": away_team,
+            "features": {
+                "elo_diff": home_strength - away_strength,
+                "home_penalty_win_rate": 0.5,
+                "away_penalty_win_rate": 0.5,
+            },
+            "outcome_probabilities": probs,
+            "predicted_score": predicted_score,
+            "confidence": {"overall": 75.0, "label": "High"},
+            "expected_goals": {
+                "home": float(predicted_score["home"]),
+                "away": float(predicted_score["away"]),
+            },
+            "contextual_factors": {},
+        }
+
+
+def test_knockout_bracket_uses_advancement_projection(monkeypatch) -> None:
+    strengths = {f"Team {index}": float(100 - index) for index in range(1, 31)}
+    strengths["Curaçao"] = 10.0
+    strengths["France"] = 90.0
+    model = StubKnockoutModel(strengths)
+
+    pairings = [
+        {"match_id": "R32-1", "annex_c": "M73", "home_team": "Team 1", "away_team": "Team 2", "home_path": "1A", "away_path": "2B"},
+        {"match_id": "R32-2", "annex_c": "M74", "home_team": "Team 3", "away_team": "Team 4", "home_path": "1C", "away_path": "3D"},
+        {"match_id": "R32-3", "annex_c": "M75", "home_team": "Team 5", "away_team": "Team 6", "home_path": "1E", "away_path": "2F"},
+        {"match_id": "R32-4", "annex_c": "M76", "home_team": "Team 7", "away_team": "Team 8", "home_path": "1G", "away_path": "2H"},
+        {"match_id": "R32-5", "annex_c": "M77", "home_team": "Team 9", "away_team": "Team 10", "home_path": "1I", "away_path": "3J"},
+        {"match_id": "R32-6", "annex_c": "M78", "home_team": "Curaçao", "away_team": "France", "home_path": "2E", "away_path": "2I"},
+        {"match_id": "R32-7", "annex_c": "M79", "home_team": "Team 11", "away_team": "Team 12", "home_path": "1K", "away_path": "3L"},
+        {"match_id": "R32-8", "annex_c": "M80", "home_team": "Team 13", "away_team": "Team 14", "home_path": "1M", "away_path": "2N"},
+        {"match_id": "R32-9", "annex_c": "M81", "home_team": "Team 15", "away_team": "Team 16", "home_path": "1O", "away_path": "3P"},
+        {"match_id": "R32-10", "annex_c": "M82", "home_team": "Team 17", "away_team": "Team 18", "home_path": "1Q", "away_path": "3R"},
+        {"match_id": "R32-11", "annex_c": "M83", "home_team": "Team 19", "away_team": "Team 20", "home_path": "2S", "away_path": "2T"},
+        {"match_id": "R32-12", "annex_c": "M84", "home_team": "Team 21", "away_team": "Team 22", "home_path": "1U", "away_path": "2V"},
+        {"match_id": "R32-13", "annex_c": "M85", "home_team": "Team 23", "away_team": "Team 24", "home_path": "1W", "away_path": "3X"},
+        {"match_id": "R32-14", "annex_c": "M86", "home_team": "Team 25", "away_team": "Team 26", "home_path": "1Y", "away_path": "2Z"},
+        {"match_id": "R32-15", "annex_c": "M87", "home_team": "Team 27", "away_team": "Team 28", "home_path": "1AA", "away_path": "3AB"},
+        {"match_id": "R32-16", "annex_c": "M88", "home_team": "Team 29", "away_team": "Team 30", "home_path": "2AC", "away_path": "2AD"},
+    ]
+
+    monkeypatch.setattr(
+        "src.simulation.knockout_stage.build_round_of_32",
+        lambda _group_rankings: (pairings, []),
+    )
+
+    result = simulate_knockout_stage(model, group_rankings={}, iterations=5, seed=42)
+
+    m78 = next(match for match in result["bracket"]["round_of_32"] if match["annex_c"] == "M78")
+    assert m78["winner"] == "France"
+    assert m78["score"] == {"home": 1, "away": 2}
+    assert m78["prediction"]["advancement_probabilities"]["away"] > 0.7

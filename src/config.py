@@ -47,6 +47,7 @@ SETTINGS = Settings(
 
 
 RAW_MATCHES_FILE = SETTINGS.raw_dir / "matches" / "historical_matches.csv"
+RAW_PENALTIES_FILE = SETTINGS.raw_dir / "matches" / "historical_penalties.csv"
 RAW_RANKINGS_FILE = SETTINGS.raw_dir / "rankings" / "team_rankings.csv"
 RAW_FIXTURES_FILE = SETTINGS.raw_dir / "fixtures" / "worldcup_fixtures.csv"
 RAW_THIRD_PLACE_MAPPING_FILE = SETTINGS.raw_dir / "fixtures" / "third_place_mapping.json"
@@ -61,6 +62,7 @@ FLAGS_DIR = SETTINGS.flags_dir
 AUTO_RESULTS_FILE = SETTINGS.external_dir / "auto_results.csv"
 TRAIN_DATASET_FILE = SETTINGS.datasets_dir / "train.csv"
 TEAM_FEATURES_FILE = SETTINGS.features_dir / "team_features.json"
+ROSTERS_FILE = SETTINGS.features_dir / "rosters.json"
 FIXTURE_CONTEXT_FILE = SETTINGS.features_dir / "fixture_context.json"
 ENSEMBLE_MODEL_FILE = SETTINGS.models_dir / "ensemble.pkl"
 MODEL_METRICS_FILE = SETTINGS.models_dir / "metrics.json"

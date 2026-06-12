@@ -23,11 +23,13 @@ def build_feature_artifacts() -> tuple[str, str]:
 
     ensure_directories()
     ensure_sample_data()
+    from src.config import ROSTERS_FILE
+    
     matches = load_historical_matches()
     rankings = load_rankings()
     fixtures = load_fixtures()
     training_df = build_training_dataset(matches, rankings)
-    player_factors = build_player_factor_features()
+    player_factors, roster_dict = build_player_factor_features()
     macro_factors = build_macro_features()
     tournament_teams = sorted(set(fixtures["home_team"]) | set(fixtures["away_team"]))
     team_summary = compute_team_summary(
@@ -41,6 +43,7 @@ def build_feature_artifacts() -> tuple[str, str]:
     training_df.to_csv(TRAIN_DATASET_FILE, index=False)
     save_json(TEAM_FEATURES_FILE, team_summary.to_dict(orient="records"))
     save_json(FIXTURE_CONTEXT_FILE, fixture_context)
+    save_json(ROSTERS_FILE, roster_dict)
     LOGGER.info("Built feature artifacts.")
     return str(TRAIN_DATASET_FILE), str(TEAM_FEATURES_FILE)
 

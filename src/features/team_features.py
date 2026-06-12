@@ -73,4 +73,14 @@ def compute_team_summary(
         summary = summary.merge(player_factors, on="team", how="left")
     if macro_factors is not None and not macro_factors.empty:
         summary = summary.merge(macro_factors, on="team", how="left")
+        
+    # Merge penalty features
+    from src.data.loaders import load_penalties
+    penalties = load_penalties()
+    if not penalties.empty:
+        summary = summary.merge(penalties[["team", "penalty_win_rate"]], on="team", how="left")
+        summary["penalty_win_rate"] = summary["penalty_win_rate"].fillna(0.5)
+    else:
+        summary["penalty_win_rate"] = 0.5
+        
     return summary
