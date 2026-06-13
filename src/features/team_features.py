@@ -12,6 +12,7 @@ from src.features.world_cup_pedigree import build_world_cup_pedigree_history, su
 def compute_team_summary(
     matches: pd.DataFrame,
     rankings: pd.DataFrame,
+    xg_matches: pd.DataFrame | None = None,
     player_factors: pd.DataFrame | None = None,
     macro_factors: pd.DataFrame | None = None,
     output_teams: set[str] | None = None,
@@ -50,10 +51,34 @@ def compute_team_summary(
 
     summary_rows = []
     pedigree_summary = summarize_world_cup_pedigree(build_world_cup_pedigree_history(matches))
+    xg_stats: dict[str, dict[str, float]] = defaultdict(
+        lambda: {
+            "matches": 0.0,
+            "xg_for": 0.0,
+            "xg_against": 0.0,
+            "goals_for": 0.0,
+            "goals_against": 0.0,
+        }
+    )
+    if xg_matches is not None and not xg_matches.empty:
+        for row in xg_matches.itertuples(index=False):
+            home = xg_stats[row.home_team]
+            away = xg_stats[row.away_team]
+            home["matches"] += 1
+            away["matches"] += 1
+            home["xg_for"] += float(row.home_xg)
+            home["xg_against"] += float(row.away_xg)
+            away["xg_for"] += float(row.away_xg)
+            away["xg_against"] += float(row.home_xg)
+            home["goals_for"] += float(row.home_goals)
+            home["goals_against"] += float(row.away_goals)
+            away["goals_for"] += float(row.away_goals)
+            away["goals_against"] += float(row.home_goals)
     for row in rankings.itertuples(index=False):
         if output_teams is not None and row.team not in output_teams:
             continue
         team_stats = stats[row.team]
+        team_xg_stats = xg_stats[row.team]
         pedigree = pedigree_summary.get(
             row.team,
             {
@@ -66,6 +91,17 @@ def compute_team_summary(
         goals_for = team_stats["goals_for"] / matches_played
         goals_against = team_stats["goals_against"] / matches_played
         points = team_stats["points"] / matches_played
+        xg_matches_played = max(team_xg_stats["matches"], 1.0)
+        if team_xg_stats["matches"] > 0:
+            xg_for_avg = team_xg_stats["xg_for"] / xg_matches_played
+            xg_against_avg = team_xg_stats["xg_against"] / xg_matches_played
+            xg_overperformance = (team_xg_stats["goals_for"] - team_xg_stats["xg_for"]) / xg_matches_played
+            xg_defensive_overperformance = (team_xg_stats["xg_against"] - team_xg_stats["goals_against"]) / xg_matches_played
+        else:
+            xg_for_avg = goals_for
+            xg_against_avg = goals_against
+            xg_overperformance = 0.0
+            xg_defensive_overperformance = 0.0
         summary_rows.append(
             {
                 "team": row.team,
@@ -80,6 +116,11 @@ def compute_team_summary(
                 "world_cup_pedigree": pedigree["world_cup_pedigree"],
                 "world_cup_semi_final_rate": pedigree["world_cup_semi_final_rate"],
                 "world_cup_appearances": pedigree["world_cup_appearances"],
+                "xg_for_avg": round(xg_for_avg, 3),
+                "xg_against_avg": round(xg_against_avg, 3),
+                "xg_balance": round(xg_for_avg - xg_against_avg, 3),
+                "xg_overperformance": round(xg_overperformance, 3),
+                "xg_defensive_overperformance": round(xg_defensive_overperformance, 3),
             }
         )
     summary = pd.DataFrame(summary_rows).sort_values("team").reset_index(drop=True)

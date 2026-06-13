@@ -26,6 +26,7 @@ from src.config import (
     RAW_TRANSFERMARKT_PROFILES_FILE,
     RAW_TRANSFERMARKT_VALUES_FILE,
     RAW_WEATHER_FILE,
+    RAW_XG_MATCHES_FILE,
     ensure_directories,
 )
 from src.utils.helpers import save_json
@@ -43,12 +44,31 @@ WORLD_BANK_COUNTRIES_URL = "https://api.worldbank.org/v2/country?format=json&per
 WORLD_BANK_POP_URL = "https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?format=json&per_page=20000"
 WORLD_BANK_GDP_URL = "https://api.worldbank.org/v2/country/all/indicator/NY.GDP.PCAP.CD?format=json&per_page=20000"
 OPEN_METEO_ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
+STATSBOMB_OPEN_BASE_URL = "https://raw.githubusercontent.com/statsbomb/open-data/master/data"
+STATSBOMB_COMPETITIONS_URL = f"{STATSBOMB_OPEN_BASE_URL}/competitions.json"
+WAYBACK_CDX_URL = "https://web.archive.org/cdx/search/cdx"
+FIVETHIRTYEIGHT_INTL_MATCHES_URL = "https://projects.fivethirtyeight.com/soccer-api/international/spi_matches_intl.csv"
+FIVETHIRTYEIGHT_INTL_MATCHES_FALLBACK_TIMESTAMP = "20250306125415"
 WIKIPEDIA_GROUP_RAW_URL = "https://en.wikipedia.org/w/index.php?title=2026_FIFA_World_Cup_Group_{group_id}&action=raw"
 WIKIPEDIA_THIRD_PLACE_RAW_URL = "https://en.wikipedia.org/w/index.php?title=Template:2026_FIFA_World_Cup_third-place_table&action=raw"
 WIKI_HEADERS = {"User-Agent": "worldcup-prediction-bot/1.0 (contact@example.com)"}
 TRAINING_WINDOW_START = pd.Timestamp("2018-01-01", tz="UTC")
 GROUP_IDS = [chr(code) for code in range(ord("A"), ord("L") + 1)]
 THIRD_PLACE_SLOT_ORDER = ["A", "B", "D", "E", "G", "I", "K", "L"]
+XG_OUTPUT_COLUMNS = [
+    "match_id",
+    "source_match_id",
+    "source",
+    "competition",
+    "season",
+    "date",
+    "home_team",
+    "away_team",
+    "home_goals",
+    "away_goals",
+    "home_xg",
+    "away_xg",
+]
 
 HOST_COORDINATES = {
     "atlanta": {"city": "Atlanta", "country": "United States", "latitude": 33.7553, "longitude": -84.4008},
@@ -118,6 +138,12 @@ def _fetch_text(url: str, headers: dict[str, str] | None = None) -> str:
     response = requests.get(url, headers=headers, timeout=60)
     response.raise_for_status()
     return response.text
+
+
+def _fetch_json(url: str, headers: dict[str, str] | None = None) -> object:
+    response = requests.get(url, headers=headers, timeout=60)
+    response.raise_for_status()
+    return response.json()
 
 
 def _canonical_team_name(name: str) -> str:
@@ -292,6 +318,188 @@ def _resolve_known_team_name(name: str, known_teams: set[str]) -> str:
     if close:
         return normalized_lookup[close[0]]
     return name
+
+
+def _statsbomb_competitions_since_2018() -> list[dict[str, object]]:
+    competitions = _fetch_json(STATSBOMB_COMPETITIONS_URL)
+    selected: list[dict[str, object]] = []
+    for row in competitions:
+        if not row.get("competition_international") or row.get("competition_gender") != "male":
+            continue
+        season_name = str(row.get("season_name", ""))
+        try:
+            season_year = int(season_name[:4])
+        except ValueError:
+            continue
+        if season_year < 2018:
+            continue
+        selected.append(row)
+    return selected
+
+
+def _statsbomb_match_rows(known_teams: set[str]) -> pd.DataFrame:
+    rows: list[dict[str, object]] = []
+    competitions = _statsbomb_competitions_since_2018()
+
+    for competition in competitions:
+        matches_url = (
+            f"{STATSBOMB_OPEN_BASE_URL}/matches/"
+            f"{competition['competition_id']}/{competition['season_id']}.json"
+        )
+        matches = _fetch_json(matches_url)
+        for match in matches:
+            match_id = int(match["match_id"])
+            events = _fetch_json(f"{STATSBOMB_OPEN_BASE_URL}/events/{match_id}.json")
+            home_name_raw = match["home_team"]["home_team_name"]
+            away_name_raw = match["away_team"]["away_team_name"]
+            home_team = _resolve_known_team_name(_canonical_team_name(home_name_raw), known_teams)
+            away_team = _resolve_known_team_name(_canonical_team_name(away_name_raw), known_teams)
+
+            xg_by_team = {home_name_raw: 0.0, away_name_raw: 0.0}
+            for event in events:
+                if event.get("type", {}).get("name") != "Shot":
+                    continue
+                shot = event.get("shot", {})
+                team_name = event.get("team", {}).get("name")
+                if team_name not in xg_by_team:
+                    xg_by_team[team_name] = 0.0
+                xg_by_team[team_name] += float(shot.get("statsbomb_xg", 0.0))
+
+            rows.append(
+                {
+                    "match_id": f"SB-{match_id}",
+                    "source_match_id": str(match_id),
+                    "source": "statsbomb",
+                    "date": pd.Timestamp(match["match_date"], tz="UTC").isoformat(),
+                    "competition": competition["competition_name"],
+                    "season": competition["season_name"],
+                    "home_team": home_team,
+                    "away_team": away_team,
+                    "home_goals": int(match["home_score"]),
+                    "away_goals": int(match["away_score"]),
+                    "home_xg": round(float(xg_by_team.get(home_name_raw, 0.0)), 4),
+                    "away_xg": round(float(xg_by_team.get(away_name_raw, 0.0)), 4),
+                }
+            )
+
+    return pd.DataFrame(rows, columns=XG_OUTPUT_COLUMNS).sort_values(["date", "source_match_id"]).reset_index(drop=True)
+
+
+def _latest_wayback_snapshot_url(target_url: str, fallback_timestamp: str) -> str:
+    response = requests.get(
+        WAYBACK_CDX_URL,
+        params={
+            "url": target_url,
+            "output": "json",
+            "filter": "statuscode:200",
+            "fl": "timestamp,original,statuscode,mimetype",
+        },
+        timeout=60,
+    )
+    response.raise_for_status()
+    rows = response.json()
+    if isinstance(rows, list) and len(rows) > 1 and len(rows[-1]) >= 1:
+        timestamp = str(rows[-1][0])
+    else:
+        timestamp = fallback_timestamp
+    return f"https://web.archive.org/web/{timestamp}if_/{target_url}"
+
+
+def _five_thirty_eight_match_rows(known_teams: set[str]) -> pd.DataFrame:
+    snapshot_url = _latest_wayback_snapshot_url(
+        FIVETHIRTYEIGHT_INTL_MATCHES_URL,
+        fallback_timestamp=FIVETHIRTYEIGHT_INTL_MATCHES_FALLBACK_TIMESTAMP,
+    )
+    matches = pd.read_csv(snapshot_url)
+    matches["date"] = pd.to_datetime(matches["date"], utc=True)
+    matches = matches[
+        (matches["date"] >= TRAINING_WINDOW_START)
+        & matches["score1"].notna()
+        & matches["score2"].notna()
+        & matches["xg1"].notna()
+        & matches["xg2"].notna()
+    ].copy()
+
+    rows: list[dict[str, object]] = []
+    for index, row in enumerate(matches.itertuples(index=False), start=1):
+        home_team = _resolve_known_team_name(_canonical_team_name(row.team1), known_teams)
+        away_team = _resolve_known_team_name(_canonical_team_name(row.team2), known_teams)
+        rows.append(
+            {
+                "match_id": f"FTE-{index:05d}",
+                "source_match_id": f"{int(row.league_id)}-{row.date.strftime('%Y%m%d')}-{index}",
+                "source": "five_thirty_eight",
+                "competition": row.league,
+                "season": str(row.season),
+                "date": row.date.isoformat(),
+                "home_team": home_team,
+                "away_team": away_team,
+                "home_goals": int(row.score1),
+                "away_goals": int(row.score2),
+                "home_xg": round(float(row.xg1), 4),
+                "away_xg": round(float(row.xg2), 4),
+            }
+        )
+    return pd.DataFrame(rows, columns=XG_OUTPUT_COLUMNS).sort_values(["date", "source_match_id"]).reset_index(drop=True)
+
+
+def _merge_xg_sources(frames: list[pd.DataFrame]) -> pd.DataFrame:
+    available = [frame.copy() for frame in frames if frame is not None and not frame.empty]
+    if not available:
+        return pd.DataFrame(columns=XG_OUTPUT_COLUMNS)
+
+    combined = pd.concat(available, ignore_index=True)
+    combined["date"] = pd.to_datetime(combined["date"], utc=True)
+    combined["source_priority"] = combined["source"].map({"statsbomb": 0, "five_thirty_eight": 1}).fillna(99)
+    combined["dedupe_key"] = (
+        combined["date"].dt.strftime("%Y-%m-%d")
+        + "|"
+        + combined["home_team"].astype(str)
+        + "|"
+        + combined["away_team"].astype(str)
+        + "|"
+        + combined["home_goals"].astype(str)
+        + "|"
+        + combined["away_goals"].astype(str)
+    )
+    combined = combined.sort_values(["source_priority", "date", "match_id", "source_match_id"])
+    combined = combined.drop_duplicates(subset="dedupe_key", keep="first")
+    combined = combined.drop(columns=["source_priority", "dedupe_key"])
+    return combined[XG_OUTPUT_COLUMNS].sort_values(["date", "source", "source_match_id"]).reset_index(drop=True)
+
+
+def _save_xg_match_data(known_teams: set[str], force_refresh: bool = False) -> None:
+    if RAW_XG_MATCHES_FILE.exists() and not force_refresh:
+        return
+
+    source_frames: list[pd.DataFrame] = []
+    try:
+        statsbomb = _statsbomb_match_rows(known_teams)
+        source_frames.append(statsbomb)
+        LOGGER.info("Collected %s StatsBomb international matches with event-level xG.", len(statsbomb))
+    except Exception as exc:  # noqa: BLE001 - keep broader refresh alive if one source is temporarily unavailable.
+        LOGGER.warning("Unable to refresh StatsBomb xG data: %s", exc)
+
+    try:
+        five_thirty_eight = _five_thirty_eight_match_rows(known_teams)
+        source_frames.append(five_thirty_eight)
+        LOGGER.info(
+            "Collected %s FiveThirtyEight international matches with archived xG coverage.",
+            len(five_thirty_eight),
+        )
+    except Exception as exc:  # noqa: BLE001 - keep higher-quality source if archive lookup fails.
+        LOGGER.warning("Unable to refresh FiveThirtyEight archived xG data: %s", exc)
+
+    xg_matches = _merge_xg_sources(source_frames)
+    if xg_matches.empty:
+        raise RuntimeError("No xG source data could be collected.")
+    xg_matches.to_csv(RAW_XG_MATCHES_FILE, index=False)
+    source_counts = xg_matches["source"].value_counts().to_dict()
+    LOGGER.info(
+        "Collected %s historical international matches with real xG coverage after dedupe: %s",
+        len(xg_matches),
+        source_counts,
+    )
 
 
 def _generate_rankings(historical_matches: pd.DataFrame, tournament_groups: dict[str, str]) -> pd.DataFrame:
@@ -528,6 +736,11 @@ def collect_all(force_refresh: bool = False) -> None:
         fixtures = pd.read_csv(RAW_FIXTURES_FILE)
 
     tournament_teams = rankings.loc[rankings["group"].astype(str) != "", "team"].tolist()
+    known_teams = set(historical_matches["home_team"]) | set(historical_matches["away_team"]) | set(tournament_teams)
+    try:
+        _save_xg_match_data(known_teams, force_refresh=force_refresh)
+    except Exception as exc:  # noqa: BLE001 - xG is additive; core pipeline should keep working.
+        LOGGER.warning("Unable to refresh real xG sidecar data: %s", exc)
     _save_player_datasets(tournament_teams, force_refresh=force_refresh)
     _save_macro_data(tournament_teams, force_refresh=force_refresh)
     _save_weather_data(fixtures, force_refresh=force_refresh)

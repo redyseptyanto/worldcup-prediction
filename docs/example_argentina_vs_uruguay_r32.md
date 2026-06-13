@@ -10,10 +10,10 @@ Current simulated outputs:
 
 | Metric | Argentina | Uruguay |
 |---|---:|---:|
-| Regulation win probability | **56.39%** | 16.65% |
-| Draw probability | 26.96% | - |
+| Regulation win probability | **55.99%** | 17.21% |
+| Draw probability | 26.81% | - |
 | Penalty win probability if drawn | **74.17%** | 25.83% |
-| Total advancement probability | **76.39%** | 23.61% |
+| Total advancement probability | **75.87%** | 24.13% |
 | Adjusted expected goals | **1.200** | 0.655 |
 | Representative scoreline | **1-0** | - |
 
@@ -23,7 +23,7 @@ Advancement is computed as:
 
 For Argentina:
 
-`0.5639 + 0.2696 * 0.7417 = 0.7639`
+`0.5599 + 0.2681 * 0.7417 = 0.7587`
 
 ## How the Model Reaches That Answer
 
@@ -35,14 +35,15 @@ The knockout simulator does **not** directly say "Argentina is better, so Argent
 
 ## Layer 1: Ensemble Model Weights
 
-The ensemble combines four model components:
+The ensemble combines five model components:
 
 | Component | Weight |
 |---|---:|
-| Poisson score model | **0.35** |
-| Boosted classifier | **0.25** |
-| Random forest | **0.20** |
-| Elo model | **0.20** |
+| Poisson score model | **0.28** |
+| Boosted classifier | **0.21** |
+| Random forest | **0.17** |
+| Elo model | **0.14** |
+| xG outcome model | **0.20** |
 
 ### What each model is doing
 
@@ -94,6 +95,18 @@ In practical terms:
 
 This model is useful because it gives a clean baseline view of relative team strength.
 
+#### xG outcome model
+
+The xG model is a separate outcome model trained on real expected-goals features rather than only raw goals and rankings.
+
+In practical terms:
+
+- it compares recent xG created and xG conceded
+- it tracks xG balance, not just final scores
+- it captures whether a team has been overperforming or underperforming its chance quality
+
+This model is useful because it gives the ensemble a second goal-quality view that is less dependent on scoreline luck.
+
 #### Why combine them?
 
 Each model sees the matchup a bit differently:
@@ -102,6 +115,7 @@ Each model sees the matchup a bit differently:
 - boosted focuses on learned outcome patterns
 - random forest adds a second tree-based view
 - Elo gives a simple strength baseline
+- xG adds a real chance-quality view from historical international matches
 
 The ensemble is meant to be more robust than any single model on its own.
 
@@ -113,14 +127,15 @@ The ensemble is meant to be more robust than any single model on its own.
 | Boosted | 60.34% | 30.33% | 9.33% |
 | Random forest | 68.08% | 22.69% | 9.23% |
 | Elo | 59.28% | 18.36% | 22.37% |
+| xG | 55.80% | 24.87% | 19.34% |
 
 ### Weighted ensemble before contextual adjustment
 
 | Outcome | Weighted probability |
 |---|---:|
-| Argentina win | **58.24%** |
-| Draw | 26.35% |
-| Uruguay win | 15.41% |
+| Argentina win | **57.85%** |
+| Draw | 26.22% |
+| Uruguay win | 15.93% |
 
 This is the base opinion before squad and context adjustments are applied.
 
@@ -140,6 +155,11 @@ The core diff features for this matchup are:
 | World Cup pedigree difference | **+0.3715** | Stronger tournament history |
 | World Cup semi-final rate difference | **+0.5714** | Better deep-run history |
 | World Cup appearances difference | 0.0000 | No edge |
+| xG-for difference | **+0.5560** | Argentina creates better chances recently |
+| xG-against difference | **-0.0080** | Nearly neutral chance prevention gap |
+| xG balance difference | **+0.5640** | Better overall xG profile for Argentina |
+| xG overperformance difference | -0.0550 | Uruguay has been slightly less wasteful |
+| xG defensive overperformance difference | +0.0180 | Small edge to Argentina defending vs chances |
 
 ## Which Core Features Matter Most
 
@@ -175,6 +195,16 @@ The tree models do not currently expose exact local SHAP-style explanations for 
 | World Cup pedigree difference | 0.0149 |
 | World Cup semi-final rate difference | 0.0022 |
 
+### xG model feature importance
+
+| Feature | Importance |
+|---|---:|
+| xG balance difference | **0.2086** |
+| xG-for difference | 0.1609 |
+| xG defensive overperformance difference | 0.1446 |
+| xG overperformance difference | 0.0580 |
+| xG-against difference | 0.0488 |
+
 ### Practical reading
 
 For this specific matchup, the biggest reasons Argentina is ahead in the core models are:
@@ -182,6 +212,7 @@ For this specific matchup, the biggest reasons Argentina is ahead in the core mo
 - Argentina has a large **ranking** edge.
 - Argentina has a large **Elo** edge.
 - Argentina also has better **recent scoring**, **recent form**, and **attack/defense** numbers.
+- Argentina also has the stronger **recent xG balance** profile.
 - Argentina has a stronger **World Cup pedigree** profile.
 
 ## Layer 3: Contextual Adjustment Weights
@@ -233,8 +264,8 @@ The contextual layer moves the probabilities like this:
 
 | Stage | Argentina win | Draw | Uruguay win |
 |---|---:|---:|---:|
-| Before contextual adjustment | **58.24%** | 26.35% | 15.41% |
-| After contextual adjustment | **56.39%** | 26.96% | 16.65% |
+| Before contextual adjustment | **57.85%** | 26.22% | 15.93% |
+| After contextual adjustment | **55.99%** | 26.81% | 17.21% |
 
 So Argentina remains favored, but by a bit less than the raw ensemble first suggested.
 
@@ -255,6 +286,18 @@ After contextual adjustment:
 | Uruguay | 0.655 |
 
 Again, Argentina stays ahead, but the context layer narrows the gap slightly.
+
+## Head-to-Head Use
+
+Historical Argentina vs Uruguay head-to-head should remain **explanatory-only** in the current stack.
+
+Why:
+
+- H2H samples are usually small and noisy
+- many old meetings involve very different squads and managers
+- Elo, form, goals, and xG already capture much of the real strength signal
+
+So H2H is best used as dashboard/report context for humans, not as a direct ensemble weight unless backtests later show a small capped lift.
 
 ## Penalties
 

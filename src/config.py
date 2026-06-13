@@ -47,6 +47,7 @@ SETTINGS = Settings(
 
 
 RAW_MATCHES_FILE = SETTINGS.raw_dir / "matches" / "historical_matches.csv"
+RAW_XG_MATCHES_FILE = SETTINGS.raw_dir / "matches" / "historical_xg_matches.csv"
 RAW_PENALTIES_FILE = SETTINGS.raw_dir / "matches" / "historical_penalties.csv"
 RAW_RANKINGS_FILE = SETTINGS.raw_dir / "rankings" / "team_rankings.csv"
 RAW_FIXTURES_FILE = SETTINGS.raw_dir / "fixtures" / "worldcup_fixtures.csv"

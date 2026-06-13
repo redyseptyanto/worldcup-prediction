@@ -15,6 +15,8 @@ def test_build_feature_artifacts_outputs_expected_columns() -> None:
         "ranking_diff",
         "form_diff",
         "outcome",
+        "xg_for_diff",
+        "xg_balance_diff",
         "world_cup_pedigree_diff",
         "world_cup_semi_final_rate_diff",
         "world_cup_appearances_diff",
@@ -22,5 +24,12 @@ def test_build_feature_artifacts_outputs_expected_columns() -> None:
     teams = {row["team"] for row in team_features}
     assert {"Brazil", "England", "Mexico", "South Korea", "Turkey", "United States"}.issubset(teams)
     team_lookup = {row["team"]: row for row in team_features}
-    assert {"world_cup_pedigree", "world_cup_semi_final_rate", "world_cup_appearances"}.issubset(team_lookup["France"])
+    assert {
+        "world_cup_pedigree",
+        "world_cup_semi_final_rate",
+        "world_cup_appearances",
+        "xg_for_avg",
+        "xg_against_avg",
+        "xg_balance",
+    }.issubset(team_lookup["France"])
     assert team_lookup["France"]["world_cup_pedigree"] > team_lookup.get("Curaçao", {}).get("world_cup_pedigree", 0.0)

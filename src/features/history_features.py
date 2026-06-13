@@ -3,13 +3,28 @@
 from __future__ import annotations
 
 from collections import defaultdict, deque
-
 import pandas as pd
 
 from src.features.world_cup_pedigree import build_world_cup_pedigree_history, summarize_world_cup_pedigree
 
 
-def build_training_dataset(matches: pd.DataFrame, rankings: pd.DataFrame) -> pd.DataFrame:
+def _xg_match_lookup(xg_matches: pd.DataFrame | None) -> dict[tuple[str, str, str, int, int], dict[str, float]]:
+    if xg_matches is None or xg_matches.empty:
+        return {}
+    lookup: dict[tuple[str, str, str, int, int], dict[str, float]] = {}
+    for row in xg_matches.itertuples(index=False):
+        key = (
+            pd.Timestamp(row.date).strftime("%Y-%m-%d"),
+            row.home_team,
+            row.away_team,
+            int(row.home_goals),
+            int(row.away_goals),
+        )
+        lookup[key] = {"home_xg": float(row.home_xg), "away_xg": float(row.away_xg)}
+    return lookup
+
+
+def build_training_dataset(matches: pd.DataFrame, rankings: pd.DataFrame, xg_matches: pd.DataFrame | None = None) -> pd.DataFrame:
     """Build a time-aware training dataset from historical matches."""
 
     elo = {row.team: float(row.seed_rating) for row in rankings.itertuples(index=False)}
@@ -17,7 +32,12 @@ def build_training_dataset(matches: pd.DataFrame, rankings: pd.DataFrame) -> pd.
     scored: dict[str, deque[int]] = defaultdict(lambda: deque(maxlen=8))
     conceded: dict[str, deque[int]] = defaultdict(lambda: deque(maxlen=8))
     results: dict[str, deque[int]] = defaultdict(lambda: deque(maxlen=5))
+    xg_for: dict[str, deque[float]] = defaultdict(lambda: deque(maxlen=8))
+    xg_against: dict[str, deque[float]] = defaultdict(lambda: deque(maxlen=8))
+    xg_overperformance: dict[str, deque[float]] = defaultdict(lambda: deque(maxlen=8))
+    xg_defensive_overperformance: dict[str, deque[float]] = defaultdict(lambda: deque(maxlen=8))
     pedigree_history = build_world_cup_pedigree_history(matches)
+    xg_lookup = _xg_match_lookup(xg_matches)
 
     rows: list[dict[str, object]] = []
 
@@ -49,6 +69,9 @@ def build_training_dataset(matches: pd.DataFrame, rankings: pd.DataFrame) -> pd.
         def average(values: list[int], fallback: float) -> float:
             return float(sum(values) / len(values)) if values else fallback
 
+        def average_or_nan(values: list[float]) -> float:
+            return float(sum(values) / len(values)) if values else float("nan")
+
         features = {
             "match_id": row.match_id,
             "date": row.date,
@@ -66,6 +89,15 @@ def build_training_dataset(matches: pd.DataFrame, rankings: pd.DataFrame) -> pd.
             "world_cup_pedigree_diff": home_pedigree["world_cup_pedigree"] - away_pedigree["world_cup_pedigree"],
             "world_cup_semi_final_rate_diff": home_pedigree["world_cup_semi_final_rate"] - away_pedigree["world_cup_semi_final_rate"],
             "world_cup_appearances_diff": home_pedigree["world_cup_appearances"] - away_pedigree["world_cup_appearances"],
+            "xg_for_diff": average_or_nan(list(xg_for[row.home_team])) - average_or_nan(list(xg_for[row.away_team])),
+            "xg_against_diff": average_or_nan(list(xg_against[row.home_team])) - average_or_nan(list(xg_against[row.away_team])),
+            "xg_balance_diff": (
+                average_or_nan(list(xg_for[row.home_team])) - average_or_nan(list(xg_against[row.home_team]))
+            ) - (
+                average_or_nan(list(xg_for[row.away_team])) - average_or_nan(list(xg_against[row.away_team]))
+            ),
+            "xg_overperformance_diff": average_or_nan(list(xg_overperformance[row.home_team])) - average_or_nan(list(xg_overperformance[row.away_team])),
+            "xg_defensive_overperformance_diff": average_or_nan(list(xg_defensive_overperformance[row.home_team])) - average_or_nan(list(xg_defensive_overperformance[row.away_team])),
         }
         outcome = "home_win" if row.home_goals > row.away_goals else "draw" if row.home_goals == row.away_goals else "away_win"
         features["outcome"] = outcome
@@ -79,6 +111,26 @@ def build_training_dataset(matches: pd.DataFrame, rankings: pd.DataFrame) -> pd.
         conceded[row.away_team].append(int(row.home_goals))
         results[row.home_team].append(home_points)
         results[row.away_team].append(away_points)
+
+        xg_key = (
+            pd.Timestamp(row.date).strftime("%Y-%m-%d"),
+            row.home_team,
+            row.away_team,
+            int(row.home_goals),
+            int(row.away_goals),
+        )
+        xg_row = xg_lookup.get(xg_key)
+        if xg_row is not None:
+            home_xg = float(xg_row["home_xg"])
+            away_xg = float(xg_row["away_xg"])
+            xg_for[row.home_team].append(home_xg)
+            xg_for[row.away_team].append(away_xg)
+            xg_against[row.home_team].append(away_xg)
+            xg_against[row.away_team].append(home_xg)
+            xg_overperformance[row.home_team].append(int(row.home_goals) - home_xg)
+            xg_overperformance[row.away_team].append(int(row.away_goals) - away_xg)
+            xg_defensive_overperformance[row.home_team].append(away_xg - int(row.away_goals))
+            xg_defensive_overperformance[row.away_team].append(home_xg - int(row.home_goals))
 
         expected_home = 1.0 / (1.0 + 10 ** ((elo[row.away_team] - elo[row.home_team]) / 400.0))
         actual_home = 1.0 if row.home_goals > row.away_goals else 0.5 if row.home_goals == row.away_goals else 0.0

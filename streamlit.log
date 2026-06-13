@@ -4,3 +4,86 @@
   Local URL: http://localhost:8501
   Network URL: http://192.168.103.73:8501
 
++------------------------- Traceback (most recent call last) --------------------------+
+| C:\Users\PSA-Airbyte\autodev\projects\worldcup-prediction\.venv\Lib\site-packages\st |
+| reamlit\runtime\scriptrunner\exec_code.py:129 in exec_func_with_error_handling       |
+|                                                                                      |
+| C:\Users\PSA-Airbyte\autodev\projects\worldcup-prediction\.venv\Lib\site-packages\st |
+| reamlit\runtime\scriptrunner\script_runner.py:789 in code_to_exec                    |
+|                                                                                      |
+| C:\Users\PSA-Airbyte\autodev\projects\worldcup-prediction\src\visualization\dashboar |
+| d.py:1526 in <module>                                                                |
+|                                                                                      |
+|                                                                                      |
+| C:\Users\PSA-Airbyte\autodev\projects\worldcup-prediction\src\visualization\dashboar |
+| d.py:1395 in main                                                                    |
+|                                                                                      |
+|                                                                                      |
+| C:\Users\PSA-Airbyte\autodev\projects\worldcup-prediction\src\visualization\dashboar |
+| d.py:37 in _ensure_baseline_snapshot                                                 |
+|                                                                                      |
+|     34                                                                               |
+|     35     from src.adaptive.engine import AdaptiveEngine                            |
+|     36                                                                               |
+| >   37     AdaptiveEngine(iterations=500).create_baseline_snapshot()                 |
+|     38                                                                               |
+|     39                                                                               |
+|     40 def _refresh_snapshot(snapshot_id: str) -> None:                              |
+|                                                                                      |
+| C:\Users\PSA-Airbyte\autodev\projects\worldcup-prediction\src\adaptive\engine.py:62  |
+| in create_baseline_snapshot                                                          |
+|                                                                                      |
+|    59     def create_baseline_snapshot(self) -> str:                                 |
+|    60         snapshot_details = self._snapshot_details()                            |
+|    61         baseline_snapshot = next((detail for detail in snapshot_details if det |
+| >  62         simulator = TournamentSimulator(iterations=self.iterations)            |
+|    63         output = simulator.run(resolved_results=self.state_machine.resolved_re |
+|    64         self._sync_state_from_output(output)                                   |
+|    65         team_features, rosters, model_metadata = self._snapshot_payloads()     |
+|                                                                                      |
+| C:\Users\PSA-Airbyte\autodev\projects\worldcup-prediction\src\simulation\tournament. |
+| py:26 in __init__                                                                    |
+|                                                                                      |
+|    23                                                                                |
+|    24     def __init__(self, iterations: int = SETTINGS.default_iterations) -> None: |
+|    25         self.iterations = iterations                                           |
+| >  26         self.model = load_or_train_ensemble()                                  |
+|    27         self.fixtures = load_fixtures()                                        |
+|    28                                                                                |
+|    29     def _predict_group_matches(self) -> list[dict[str, Any]]:                  |
+|                                                                                      |
+| C:\Users\PSA-Airbyte\autodev\projects\worldcup-prediction\src\models\train.py:74 in  |
+| load_or_train_ensemble                                                               |
+|                                                                                      |
+|    71                                                                                |
+|    72     ensure_sample_data()                                                       |
+|    73     if force or not ENSEMBLE_MODEL_FILE.exists():                              |
+| >  74         return train_models(force=True)                                        |
+|    75     try:                                                                       |
+|    76         model = EnsembleModel.load()                                           |
+|    77     except Exception as exc:  # noqa: BLE001 - stale serialized artifacts shou |
+|                                                                                      |
+| C:\Users\PSA-Airbyte\autodev\projects\worldcup-prediction\src\models\ensemble.py:306 |
+| in load                                                                              |
+|                                                                                      |
+|   303         self._prediction_cache[cache_key] = result                             |
+|   304         return result                                                          |
+|   305                                                                                |
+| > 306     def feature_importance(self) -> dict[str, dict[str, float]]:               |
+|   307         """Expose available feature importances."""                            |
+|   308                                                                                |
+|   309         return {                                                               |
+|                                                                                      |
+| C:\Users\PSA-Airbyte\autodev\projects\worldcup-prediction\src\models\xg_model.py:10  |
+| in <module>                                                                          |
+|                                                                                      |
+|    7 import pandas as pd                                                             |
+|    8                                                                                 |
+|    9 from src.models.base import BaseOutcomeModel                                    |
+| > 10 from src.utils.constants import OUTCOME_ORDER, XG_FEATURE_COLUMNS               |
+|   11                                                                                 |
+|   12 try:                                                                            |
+|   13     from sklearn.linear_model import LogisticRegression                         |
++--------------------------------------------------------------------------------------+
+ImportError: cannot import name 'XG_FEATURE_COLUMNS' from 'src.utils.constants' 
+(C:\Users\PSA-Airbyte\autodev\projects\worldcup-prediction\src\utils\constants.py)

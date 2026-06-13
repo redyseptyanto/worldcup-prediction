@@ -19,10 +19,11 @@ OUTCOME_AWAY = "away_win"
 OUTCOME_ORDER = [OUTCOME_HOME, OUTCOME_DRAW, OUTCOME_AWAY]
 
 MODEL_WEIGHTS = {
-    "poisson": 0.35,
-    "boosted": 0.25,
-    "random_forest": 0.2,
-    "elo": 0.2,
+    "poisson": 0.28,
+    "boosted": 0.21,
+    "random_forest": 0.17,
+    "elo": 0.14,
+    "xg": 0.20,
 }
 
 FEATURE_COLUMNS = [
@@ -36,6 +37,14 @@ FEATURE_COLUMNS = [
     "world_cup_pedigree_diff",
     "world_cup_semi_final_rate_diff",
     "world_cup_appearances_diff",
+]
+
+XG_FEATURE_COLUMNS = [
+    "xg_for_diff",
+    "xg_against_diff",
+    "xg_balance_diff",
+    "xg_overperformance_diff",
+    "xg_defensive_overperformance_diff",
 ]
 
 

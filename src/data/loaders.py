@@ -13,6 +13,7 @@ from src.config import (
     RAW_FIXTURES_FILE,
     RAW_MATCHES_FILE,
     RAW_RANKINGS_FILE,
+    RAW_XG_MATCHES_FILE,
     ensure_directories,
 )
 from src.data.collector import ensure_sample_data
@@ -38,6 +39,36 @@ def load_rankings() -> pd.DataFrame:
 
     ensure_sample_data()
     return pd.read_csv(RAW_RANKINGS_FILE)
+
+
+def load_xg_matches() -> pd.DataFrame:
+    """Load collected historical xG matches when available."""
+
+    ensure_sample_data()
+    if not RAW_XG_MATCHES_FILE.exists():
+        from src.data.collector import collect_all
+
+        collect_all(force_refresh=False)
+    if not RAW_XG_MATCHES_FILE.exists():
+        return pd.DataFrame(
+            columns=[
+                "match_id",
+                "source_match_id",
+                "source",
+                "competition",
+                "season",
+                "date",
+                "home_team",
+                "away_team",
+                "home_goals",
+                "away_goals",
+                "home_xg",
+                "away_xg",
+            ]
+        )
+    frame = pd.read_csv(RAW_XG_MATCHES_FILE)
+    frame["date"] = pd.to_datetime(frame["date"], utc=True)
+    return frame.sort_values("date").reset_index(drop=True)
 
 
 def load_fixtures() -> pd.DataFrame:
