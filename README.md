@@ -23,7 +23,6 @@ The implementation is intentionally smaller than the original vision. It is hone
 - Snapshot history in `output/snapshots/`
 - Prediction ledger in `output/prediction_ledger.csv`
 - Optional FastAPI and Streamlit interfaces
-- Docker scaffold for future Postgres and Redis work
 
 ## Not Implemented Yet
 
@@ -50,7 +49,6 @@ worldcup-prediction/
 |  |- raw/
 |  |- processed/
 |  `- external/
-|- docker/
 |- tests/
 |- AGENT.md
 |- PRD.md

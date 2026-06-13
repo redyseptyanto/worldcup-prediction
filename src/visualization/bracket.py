@@ -2,15 +2,10 @@
 
 from __future__ import annotations
 
-from src.config import SETTINGS
-from src.utils.helpers import load_json
+from src.visualization.snapshot_store import load_snapshot_file
 
 
-def load_latest_bracket() -> dict[str, object]:
-    """Load the latest bracket snapshot if one exists."""
+def load_latest_bracket(snapshot_id: str | None = None) -> dict[str, object]:
+    """Load bracket data from the selected snapshot."""
 
-    snapshots = sorted(path.name for path in SETTINGS.snapshots_dir.iterdir() if path.is_dir())
-    if not snapshots:
-        return {}
-    latest = snapshots[-1]
-    return load_json(SETTINGS.snapshots_dir / latest / "bracket_data.json", default={})
+    return load_snapshot_file("bracket_data.json", snapshot_id=snapshot_id, default={})

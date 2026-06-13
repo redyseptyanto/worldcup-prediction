@@ -2,14 +2,10 @@
 
 from __future__ import annotations
 
-import pandas as pd
-
-from src.config import PREDICTIONS_FILE
+from src.visualization.snapshot_store import load_snapshot_file
 
 
-def probability_table() -> list[dict[str, object]]:
-    """Return the latest prediction table."""
+def probability_table(snapshot_id: str | None = None) -> list[dict[str, object]]:
+    """Return the selected snapshot's prediction table."""
 
-    if not PREDICTIONS_FILE.exists():
-        return []
-    return pd.read_csv(PREDICTIONS_FILE).to_dict(orient="records")
+    return load_snapshot_file("predictions.json", snapshot_id=snapshot_id, default=[])

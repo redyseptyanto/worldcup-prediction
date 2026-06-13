@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 from typing import Any
 
 import pandas as pd
@@ -12,8 +13,8 @@ from src.adaptive.ingester import ResultIngester
 from src.adaptive.rollback import RollbackManager
 from src.adaptive.snapshotter import SnapshotManager
 from src.adaptive.state_machine import MatchStateMachine
-from src.config import TEAM_FEATURES_FILE
-from src.models.train import load_or_train_ensemble, train_models
+from src.config import ROSTERS_FILE, TEAM_FEATURES_FILE
+from src.models.train import current_model_metadata, load_or_train_ensemble, train_models
 from src.simulation.tournament import TournamentSimulator
 from src.utils.helpers import load_json
 
@@ -30,23 +31,76 @@ class AdaptiveEngine:
         self.comparer = SnapshotComparer()
         self.rollback_manager = RollbackManager(self.snapshot_manager, self.state_machine)
 
+    def _snapshot_payloads(self) -> tuple[list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
+        team_features = load_json(TEAM_FEATURES_FILE, default=[])
+        rosters = load_json(ROSTERS_FILE, default={})
+        model_metadata = current_model_metadata()
+        return team_features, rosters, model_metadata
+
+    def _snapshot_details(self) -> list[dict[str, Any]]:
+        """Return snapshot metadata with backward-compatible fallback."""
+
+        if hasattr(self.snapshot_manager, "list_snapshot_details"):
+            return self.snapshot_manager.list_snapshot_details()
+        return [
+            {
+                "snapshot_id": snapshot_id,
+                "descriptor": snapshot_id.split("_", 1)[-1],
+                "created_at": None,
+                "resolved_matches": [],
+                "model_metadata": {},
+            }
+            for snapshot_id in self.snapshot_manager.list_snapshots()
+        ]
+
+    def _sync_state_from_output(self, output: dict[str, Any]) -> None:
+        self.state_machine.sync_knockout_matches(output)
+
     def create_baseline_snapshot(self) -> str:
-        if self.snapshot_manager.list_snapshots():
-            return self.snapshot_manager.list_snapshots()[0]
+        snapshot_details = self._snapshot_details()
+        baseline_snapshot = next((detail for detail in snapshot_details if detail["descriptor"] == "baseline"), None)
         simulator = TournamentSimulator(iterations=self.iterations)
         output = simulator.run(resolved_results=self.state_machine.resolved_results())
-        team_features = load_json(TEAM_FEATURES_FILE, default=[])
-        return self.snapshot_manager.create_snapshot("baseline", output, self.state_machine._state, team_features)  # noqa: SLF001
+        self._sync_state_from_output(output)
+        team_features, rosters, model_metadata = self._snapshot_payloads()
+        if baseline_snapshot and not baseline_snapshot["resolved_matches"]:
+            existing_signature = (baseline_snapshot.get("model_metadata") or {}).get("signature")
+            if existing_signature != model_metadata["signature"]:
+                return self.snapshot_manager.update_snapshot(
+                    baseline_snapshot["snapshot_id"],
+                    output,
+                    self.state_machine._state,  # noqa: SLF001
+                    team_features,
+                    rosters,
+                    model_metadata,
+                )
+            return baseline_snapshot["snapshot_id"]
+        return self.snapshot_manager.create_snapshot(
+            "baseline",
+            output,
+            self.state_machine._state,  # noqa: SLF001
+            team_features,
+            rosters,
+            model_metadata,
+        )
 
-    def ingest_result(self, match_id: str, home_goals: int, away_goals: int) -> dict[str, Any]:
+    def ingest_result(self, match_id: str, home_goals: int, away_goals: int, winner: str | None = None) -> dict[str, Any]:
         self.create_baseline_snapshot()
-        ingest_result = self.ingester.ingest(match_id, home_goals, away_goals)
+        ingest_result = self.ingester.ingest(match_id, home_goals, away_goals, winner=winner)
         train_models(force=True)
         simulator = TournamentSimulator(iterations=self.iterations)
         output = simulator.run(resolved_results=self.state_machine.resolved_results())
-        team_features = load_json(TEAM_FEATURES_FILE, default=[])
+        self._sync_state_from_output(output)
+        team_features, rosters, model_metadata = self._snapshot_payloads()
         descriptor = f"after_{match_id.lower()}"
-        snapshot_id = self.snapshot_manager.create_snapshot(descriptor, output, self.state_machine._state, team_features)  # noqa: SLF001
+        snapshot_id = self.snapshot_manager.create_snapshot(
+            descriptor,
+            output,
+            self.state_machine._state,  # noqa: SLF001
+            team_features,
+            rosters,
+            model_metadata,
+        )
         return {
             "ingested": ingest_result.__dict__,
             "affected_matches": self.cascade.get_affected_matches(match_id),
@@ -60,6 +114,7 @@ class AdaptiveEngine:
                 match_id=str(row["match_id"]),
                 home_goals=int(row["home_goals"]),
                 away_goals=int(row["away_goals"]),
+                winner=None if pd.isna(row.get("winner")) else str(row.get("winner")),
             )
             snapshots.append(response["snapshot_id"])
         return {"snapshots": snapshots, "count": len(results)}
@@ -88,15 +143,41 @@ class AdaptiveEngine:
         response = self.rollback_manager.rollback_to(snapshot_id)
         simulator = TournamentSimulator(iterations=self.iterations)
         output = simulator.run(resolved_results=self.state_machine.resolved_results())
-        team_features = load_json(TEAM_FEATURES_FILE, default=[])
+        self._sync_state_from_output(output)
+        team_features, rosters, model_metadata = self._snapshot_payloads()
         rolled_back_snapshot = self.snapshot_manager.create_snapshot(
             f"rolled_back_from_{snapshot_id}",
             output,
             self.state_machine._state,  # noqa: SLF001
             team_features,
+            rosters,
+            model_metadata,
         )
         response["new_snapshot_id"] = rolled_back_snapshot
         return response
+
+    def refresh_snapshot(self, snapshot_id: str) -> dict[str, Any]:
+        snapshot_state = self.snapshot_manager.read_snapshot(snapshot_id, "state.json")
+        if snapshot_state is None:
+            raise FileNotFoundError(f"Snapshot {snapshot_id} does not exist.")
+        original_state = copy.deepcopy(self.state_machine._state)  # noqa: SLF001
+        try:
+            self.state_machine.reset(snapshot_state=snapshot_state)
+            simulator = TournamentSimulator(iterations=self.iterations)
+            output = simulator.run(resolved_results=self.state_machine.resolved_results())
+            self._sync_state_from_output(output)
+            team_features, rosters, model_metadata = self._snapshot_payloads()
+            updated_snapshot_id = self.snapshot_manager.update_snapshot(
+                snapshot_id,
+                output,
+                self.state_machine._state,  # noqa: SLF001
+                team_features,
+                rosters,
+                model_metadata,
+            )
+        finally:
+            self.state_machine.reset(snapshot_state=original_state)
+        return {"snapshot_id": updated_snapshot_id, "model_metadata": model_metadata}
 
     def ingest_csv(self, file_path: str) -> dict[str, Any]:
         frame = pd.read_csv(file_path)

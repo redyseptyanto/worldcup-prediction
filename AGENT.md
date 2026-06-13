@@ -19,7 +19,6 @@ Treat this repository as a stable baseline, not a finished product.
 
 - Python 3.13 or newer
 - `pip`
-- Optional: Docker Desktop for the scaffolded Postgres and Redis services
 
 ### Local Setup
 
@@ -112,11 +111,15 @@ Note:
 - `src/adaptive/comparer.py`
 - `src/adaptive/rollback.py`
 - `src/adaptive/engine.py`
+- snapshots now store bracket, standings, predictions, team features, rosters, and model metadata together
+- the adaptive state store tracks knockout placeholders as well as group fixtures so later-round results can be locked forward-only
 
 ### Interfaces
 
 - FastAPI app in `src/api/main.py`
 - optional Streamlit dashboard in `src/visualization/dashboard.py`
+  - renders from selected stored snapshots rather than recomputing live views on page load
+  - supports refreshing a selected snapshot when the trained model artifacts change during experimentation
 - scheduler entry point in `src/scheduler/daily_run.py`
 
 ## 5. Coding Rules

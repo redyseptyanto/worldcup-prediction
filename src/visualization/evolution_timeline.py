@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from src.adaptive.snapshotter import SnapshotManager
+from src.visualization.snapshot_store import list_snapshot_details
 
 
-def list_snapshot_timeline() -> list[str]:
-    """List available snapshots in chronological order."""
+def list_snapshot_timeline() -> list[dict[str, object]]:
+    """List available snapshots in chronological order with metadata."""
 
-    return SnapshotManager().list_snapshots()
+    return list_snapshot_details()

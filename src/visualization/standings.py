@@ -2,15 +2,10 @@
 
 from __future__ import annotations
 
-from src.config import SETTINGS
-from src.utils.helpers import load_json
+from src.visualization.snapshot_store import load_snapshot_file
 
 
-def load_latest_standings() -> dict[str, object]:
-    """Load standings from the latest snapshot."""
+def load_latest_standings(snapshot_id: str | None = None) -> dict[str, object]:
+    """Load standings from the selected snapshot."""
 
-    snapshots = sorted(path.name for path in SETTINGS.snapshots_dir.iterdir() if path.is_dir())
-    if not snapshots:
-        return {}
-    latest = snapshots[-1]
-    return load_json(SETTINGS.snapshots_dir / latest / "standings.json", default={})
+    return load_snapshot_file("standings.json", snapshot_id=snapshot_id, default={})

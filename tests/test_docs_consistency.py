@@ -12,7 +12,6 @@ def test_core_doc_claims_match_repo() -> None:
         root / "src" / "config.py",
         root / "src" / "models" / "base.py",
         root / "src" / "simulation" / "tournament.py",
-        root / "docker" / "docker-compose.yml",
     ]
     for file_path in required_files:
         assert file_path.exists(), f"Missing documented file: {file_path}"

@@ -50,6 +50,7 @@ class TournamentSimulator:
                     "weather_wind": prediction["contextual_factors"].get("weather_wind"),
                     "rest_days_diff": prediction["contextual_factors"].get("rest_days_diff"),
                     "travel_fatigue_diff": prediction["contextual_factors"].get("travel_fatigue_diff"),
+                    "prediction_details": prediction,
                 }
             )
         return rows
@@ -69,6 +70,7 @@ class TournamentSimulator:
             group_results["standings"],
             iterations=self.iterations,
             seed=SETTINGS.random_seed + 1,
+            resolved_results=resolved_results,
         )
         predictions = self._predict_group_matches()
         pd.DataFrame(predictions).to_csv(PREDICTIONS_FILE, index=False)

@@ -47,6 +47,45 @@ SF_MATCH_NUMBERS = ["M101", "M102"]
 FINAL_MATCH_NUMBER = "M104"
 THIRD_PLACE_MATCH_NUMBER = "M103"
 
+KNOCKOUT_STAGE_LAYOUT = [
+    ("round_of_32", 16, ROUND_OF_32_TEMPLATE),
+    ("round_of_16", 8, [(f"R16-{index}", number, "round_of_16", None, None) for index, number in enumerate(R16_MATCH_NUMBERS, start=1)]),
+    ("quarter_finals", 4, [(f"QF-{index}", number, "quarter_finals", None, None) for index, number in enumerate(QF_MATCH_NUMBERS, start=1)]),
+    ("semi_finals", 2, [(f"SF-{index}", number, "semi_finals", None, None) for index, number in enumerate(SF_MATCH_NUMBERS, start=1)]),
+    ("third_place", 1, [("THIRD-1", THIRD_PLACE_MATCH_NUMBER, "third_place", None, None)]),
+    ("final", 1, [("FINAL-1", FINAL_MATCH_NUMBER, "final", None, None)]),
+]
+
+
+def all_knockout_match_templates() -> list[dict[str, str]]:
+    """Return placeholder metadata for every knockout match id."""
+
+    templates: list[dict[str, str]] = []
+    for stage_name, _, entries in KNOCKOUT_STAGE_LAYOUT:
+        for match_id, annex_c, round_name, *_ in entries:
+            templates.append(
+                {
+                    "match_id": match_id,
+                    "annex_c": annex_c,
+                    "stage": stage_name,
+                    "round": round_name,
+                }
+            )
+    return templates
+
+
+def flatten_bracket_matches(bracket: dict[str, Any]) -> list[dict[str, Any]]:
+    """Flatten the snapshot bracket payload into one list of matches."""
+
+    matches: list[dict[str, Any]] = []
+    for stage_name, _, _ in KNOCKOUT_STAGE_LAYOUT:
+        stage_payload = bracket.get(stage_name)
+        if isinstance(stage_payload, list):
+            matches.extend(stage_payload)
+        elif isinstance(stage_payload, dict):
+            matches.append(stage_payload)
+    return matches
+
 
 def _team_from_reference(
     reference: tuple[str, str],
@@ -121,6 +160,37 @@ def _resolve_knockout_match(model: EnsembleModel, home_team: str, away_team: str
     }
 
 
+def _resolve_recorded_knockout_match(
+    model: EnsembleModel,
+    home_team: str,
+    away_team: str,
+    match_id: str,
+    resolved_entry: dict[str, Any],
+) -> dict[str, Any]:
+    """Project a resolved knockout match into the bracket payload."""
+
+    prediction = model.predict_match(home_team, away_team, match_id=match_id)
+    home_goals = int(resolved_entry["home_goals"])
+    away_goals = int(resolved_entry["away_goals"])
+    if home_goals == away_goals:
+        winner = resolved_entry.get("winner")
+        if winner not in {home_team, away_team}:
+            raise ValueError(f"Resolved knockout match {match_id} requires a stored winner for drawn scores.")
+    else:
+        winner = home_team if home_goals > away_goals else away_team
+    loser = away_team if winner == home_team else home_team
+    return {
+        "match_id": match_id,
+        "home_team": home_team,
+        "away_team": away_team,
+        "winner": winner,
+        "loser": loser,
+        "score": {"home": home_goals, "away": away_goals},
+        "prediction": prediction,
+        "result_source": "resolved",
+    }
+
+
 def _project_knockout_match(model: EnsembleModel, home_team: str, away_team: str, match_id: str) -> dict[str, Any]:
     """Resolve a knockout match using the highest advancement probability."""
 
@@ -155,6 +225,7 @@ def _project_knockout_match(model: EnsembleModel, home_team: str, away_team: str
             "away": predicted_score.get("away", "-"),
         },
         "prediction": projected_prediction,
+        "result_source": "projected",
     }
 
 
@@ -162,21 +233,49 @@ def _play_round(
     model: EnsembleModel,
     pairings: list[dict[str, Any]],
     rng: np.random.Generator,
+    resolved_results: dict[str, dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
-    return [
-        _resolve_knockout_match(model, pairing["home_team"], pairing["away_team"], rng, pairing["match_id"])
-        for pairing in pairings
-    ]
+    resolved_results = resolved_results or {}
+    results = []
+    for pairing in pairings:
+        resolved_entry = resolved_results.get(pairing["match_id"])
+        if resolved_entry is not None:
+            results.append(
+                _resolve_recorded_knockout_match(
+                    model,
+                    pairing["home_team"],
+                    pairing["away_team"],
+                    pairing["match_id"],
+                    resolved_entry,
+                )
+            )
+            continue
+        results.append(_resolve_knockout_match(model, pairing["home_team"], pairing["away_team"], rng, pairing["match_id"]))
+    return results
 
 
 def _project_round(
     model: EnsembleModel,
     pairings: list[dict[str, Any]],
+    resolved_results: dict[str, dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
-    return [
-        _project_knockout_match(model, pairing["home_team"], pairing["away_team"], pairing["match_id"])
-        for pairing in pairings
-    ]
+    resolved_results = resolved_results or {}
+    results = []
+    for pairing in pairings:
+        resolved_entry = resolved_results.get(pairing["match_id"])
+        if resolved_entry is not None:
+            results.append(
+                _resolve_recorded_knockout_match(
+                    model,
+                    pairing["home_team"],
+                    pairing["away_team"],
+                    pairing["match_id"],
+                    resolved_entry,
+                )
+            )
+            continue
+        results.append(_project_knockout_match(model, pairing["home_team"], pairing["away_team"], pairing["match_id"]))
+    return results
 
 
 def _attach_pairing_metadata(pairings: list[dict[str, Any]], results: list[dict[str, Any]]) -> None:
@@ -216,6 +315,7 @@ def simulate_knockout_stage(
     group_rankings: dict[str, list[dict[str, Any]]],
     iterations: int,
     seed: int = 42,
+    resolved_results: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Run the full 32-team knockout bracket.
 
@@ -227,20 +327,21 @@ def simulate_knockout_stage(
     rng = np.random.default_rng(seed)
     champion_counts: dict[str, int] = defaultdict(int)
     round_of_32_pairings, best_third = build_round_of_32(group_rankings)
+    resolved_results = resolved_results or {}
 
-    projected_round_of_32 = _project_round(model, round_of_32_pairings)
+    projected_round_of_32 = _project_round(model, round_of_32_pairings, resolved_results=resolved_results)
     _attach_pairing_metadata(round_of_32_pairings, projected_round_of_32)
 
     projected_round_of_16_pairings = _next_round_pairings(projected_round_of_32, "R16", R16_MATCH_NUMBERS)
-    projected_round_of_16 = _project_round(model, projected_round_of_16_pairings)
+    projected_round_of_16 = _project_round(model, projected_round_of_16_pairings, resolved_results=resolved_results)
     _attach_pairing_metadata(projected_round_of_16_pairings, projected_round_of_16)
 
     projected_quarter_pairings = _next_round_pairings(projected_round_of_16, "QF", QF_MATCH_NUMBERS)
-    projected_quarter_finals = _project_round(model, projected_quarter_pairings)
+    projected_quarter_finals = _project_round(model, projected_quarter_pairings, resolved_results=resolved_results)
     _attach_pairing_metadata(projected_quarter_pairings, projected_quarter_finals)
 
     projected_semi_pairings = _next_round_pairings(projected_quarter_finals, "SF", SF_MATCH_NUMBERS)
-    projected_semi_finals = _project_round(model, projected_semi_pairings)
+    projected_semi_finals = _project_round(model, projected_semi_pairings, resolved_results=resolved_results)
     _attach_pairing_metadata(projected_semi_pairings, projected_semi_finals)
 
     projected_third_place_pairing = [
@@ -254,27 +355,27 @@ def simulate_knockout_stage(
             "away_path": f"L{projected_semi_finals[1].get('annex_c', 'SF2')}",
         }
     ]
-    projected_third_place = _project_round(model, projected_third_place_pairing)[0]
+    projected_third_place = _project_round(model, projected_third_place_pairing, resolved_results=resolved_results)[0]
     _attach_pairing_metadata(projected_third_place_pairing, [projected_third_place])
 
     projected_final_pairings = _next_round_pairings(projected_semi_finals, "FINAL", [FINAL_MATCH_NUMBER])
-    projected_final = _project_round(model, projected_final_pairings)[0]
+    projected_final = _project_round(model, projected_final_pairings, resolved_results=resolved_results)[0]
     _attach_pairing_metadata(projected_final_pairings, [projected_final])
 
     for _ in range(iterations):
-        round_of_32 = _play_round(model, round_of_32_pairings, rng)
+        round_of_32 = _play_round(model, round_of_32_pairings, rng, resolved_results=resolved_results)
         _attach_pairing_metadata(round_of_32_pairings, round_of_32)
 
         round_of_16_pairings = _next_round_pairings(round_of_32, "R16", R16_MATCH_NUMBERS)
-        round_of_16 = _play_round(model, round_of_16_pairings, rng)
+        round_of_16 = _play_round(model, round_of_16_pairings, rng, resolved_results=resolved_results)
         _attach_pairing_metadata(round_of_16_pairings, round_of_16)
 
         quarter_pairings = _next_round_pairings(round_of_16, "QF", QF_MATCH_NUMBERS)
-        quarter_finals = _play_round(model, quarter_pairings, rng)
+        quarter_finals = _play_round(model, quarter_pairings, rng, resolved_results=resolved_results)
         _attach_pairing_metadata(quarter_pairings, quarter_finals)
 
         semi_pairings = _next_round_pairings(quarter_finals, "SF", SF_MATCH_NUMBERS)
-        semi_finals = _play_round(model, semi_pairings, rng)
+        semi_finals = _play_round(model, semi_pairings, rng, resolved_results=resolved_results)
         _attach_pairing_metadata(semi_pairings, semi_finals)
 
         third_place_pairing = [
@@ -288,11 +389,11 @@ def simulate_knockout_stage(
                 "away_path": f"L{semi_finals[1].get('annex_c', 'SF2')}",
             }
         ]
-        third_place = _play_round(model, third_place_pairing, rng)[0]
+        third_place = _play_round(model, third_place_pairing, rng, resolved_results=resolved_results)[0]
         _attach_pairing_metadata(third_place_pairing, [third_place])
 
         final_pairings = _next_round_pairings(semi_finals, "FINAL", [FINAL_MATCH_NUMBER])
-        final_result = _play_round(model, final_pairings, rng)[0]
+        final_result = _play_round(model, final_pairings, rng, resolved_results=resolved_results)[0]
         _attach_pairing_metadata(final_pairings, [final_result])
 
         winner = final_result["winner"]

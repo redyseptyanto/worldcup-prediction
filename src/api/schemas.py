@@ -24,3 +24,4 @@ class IngestRequest(BaseModel):
     match_id: str
     home_goals: int = Field(ge=0, le=15)
     away_goals: int = Field(ge=0, le=15)
+    winner: str | None = None

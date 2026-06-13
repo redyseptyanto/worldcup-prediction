@@ -79,3 +79,41 @@ def test_knockout_bracket_uses_advancement_projection(monkeypatch) -> None:
     assert m78["winner"] == "France"
     assert m78["score"] == {"home": 1, "away": 2}
     assert m78["prediction"]["advancement_probabilities"]["away"] > 0.7
+
+
+def test_knockout_bracket_respects_resolved_results(monkeypatch) -> None:
+    strengths = {"Home": 10.0, "Away": 90.0}
+    for index in range(1, 31):
+        strengths[f"Team {index}"] = float(80 - index)
+    model = StubKnockoutModel(strengths)
+
+    pairings = [{"match_id": "R32-1", "annex_c": "M73", "home_team": "Home", "away_team": "Away", "home_path": "1A", "away_path": "2B"}]
+    for index in range(2, 17):
+        pairings.append(
+            {
+                "match_id": f"R32-{index}",
+                "annex_c": f"M{72 + index}",
+                "home_team": f"Team {index * 2 - 3}",
+                "away_team": f"Team {index * 2 - 2}",
+                "home_path": f"slot{index}A",
+                "away_path": f"slot{index}B",
+            }
+        )
+
+    monkeypatch.setattr(
+        "src.simulation.knockout_stage.build_round_of_32",
+        lambda _group_rankings: (pairings, []),
+    )
+
+    result = simulate_knockout_stage(
+        model,
+        group_rankings={},
+        iterations=5,
+        seed=42,
+        resolved_results={"R32-1": {"home_goals": 1, "away_goals": 0, "winner": "Home"}},
+    )
+
+    locked_match = next(match for match in result["bracket"]["round_of_32"] if match["match_id"] == "R32-1")
+    assert locked_match["winner"] == "Home"
+    assert locked_match["score"] == {"home": 1, "away": 0}
+    assert locked_match["result_source"] == "resolved"

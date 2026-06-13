@@ -12,6 +12,8 @@ def test_loader_pipeline_creates_tournament_inputs() -> None:
     assert not matches.empty
     assert len(rankings) >= 48
     assert len(fixtures) == 72
-    assert len(state) == 72
+    assert len(state) == 104
+    assert state["R32-1"]["home_team"] == "TBD"
+    assert state["FINAL-1"]["stage"] == "final"
     tournament_teams = set(rankings.loc[rankings["group"].fillna("") != "", "team"])
     assert {"Brazil", "Canada", "England", "Mexico", "South Korea", "United States"}.issubset(tournament_teams)

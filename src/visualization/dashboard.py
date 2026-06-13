@@ -13,6 +13,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
 from src.config import ENSEMBLE_MODEL_FILE, FLAGS_DIR
+from src.models.train import current_model_metadata
 from src.utils.helpers import load_json
 
 def _render_html(st, html_str: str) -> None:
@@ -24,6 +25,7 @@ from src.visualization.bracket import load_latest_bracket
 from src.visualization.evolution_timeline import list_snapshot_timeline
 from src.visualization.head_to_head import get_head_to_head
 from src.visualization.probability_heatmap import probability_table
+from src.visualization.snapshot_store import load_snapshot_file
 from src.visualization.standings import load_latest_standings
 
 
@@ -33,6 +35,57 @@ def _ensure_baseline_snapshot() -> None:
     from src.adaptive.engine import AdaptiveEngine
 
     AdaptiveEngine(iterations=500).create_baseline_snapshot()
+
+
+def _refresh_snapshot(snapshot_id: str) -> None:
+    """Recompute one stored snapshot using the current trained model artifacts."""
+
+    from src.adaptive.engine import AdaptiveEngine
+
+    AdaptiveEngine(iterations=500).refresh_snapshot(snapshot_id)
+
+
+def _snapshot_label(snapshot: dict[str, Any]) -> str:
+    model_signature = ((snapshot.get("model_metadata") or {}).get("signature")) or "unknown"
+    resolved_count = len(snapshot.get("resolved_matches", []))
+    return f"{snapshot['snapshot_id']} | {snapshot['descriptor']} | resolved {resolved_count} | model {model_signature}"
+
+
+def _find_snapshot(snapshot_id: str, snapshots: list[dict[str, Any]]) -> dict[str, Any] | None:
+    return next((snapshot for snapshot in snapshots if snapshot["snapshot_id"] == snapshot_id), None)
+
+
+def _flatten_snapshot_matches(bracket_data: dict[str, Any]) -> list[dict[str, Any]]:
+    bracket = bracket_data.get("bracket", {})
+    matches: list[dict[str, Any]] = []
+    for stage_name in ("round_of_32", "round_of_16", "quarter_finals", "semi_finals"):
+        matches.extend(bracket.get(stage_name, []))
+    if bracket.get("third_place"):
+        matches.append(bracket["third_place"])
+    if bracket.get("final"):
+        matches.append(bracket["final"])
+    return matches
+
+
+def _snapshot_match_lookup(snapshot_id: str) -> dict[str, dict[str, Any]]:
+    predictions = probability_table(snapshot_id)
+    bracket_data = load_latest_bracket(snapshot_id)
+    lookup: dict[str, dict[str, Any]] = {}
+    for prediction in predictions:
+        lookup[prediction["match_id"]] = {"match_type": "group", "payload": prediction}
+    for match in _flatten_snapshot_matches(bracket_data):
+        lookup[match["match_id"]] = {"match_type": "knockout", "payload": match}
+    return lookup
+
+
+def _team_features_lookup(snapshot_id: str) -> dict[str, dict[str, Any]]:
+    team_features = load_snapshot_file("team_features.json", snapshot_id=snapshot_id, default=[])
+    return {row["team"]: row for row in team_features if isinstance(row, dict) and "team" in row}
+
+
+def _snapshot_rosters(snapshot_id: str) -> dict[str, list[dict[str, Any]]]:
+    roster_payload = load_snapshot_file("rosters.json", snapshot_id=snapshot_id, default={}) or {}
+    return roster_payload if isinstance(roster_payload, dict) else {}
 
 
 def _inject_styles(st: Any, dark_mode: bool = False) -> None:
@@ -661,7 +714,7 @@ def _render_bracket_match_html(match: dict[str, Any]) -> str:
     )
 
 
-def _render_knockout_bracket(st: Any, bracket: dict[str, Any], champion_odds: dict[str, float]) -> None:
+def _render_knockout_bracket(st: Any, bracket: dict[str, Any], champion_odds: dict[str, float], snapshot_id: str) -> None:
     """Render the full knockout bracket from R32 to Final as a horizontally scrollable tree."""
 
     rounds_config = [
@@ -672,7 +725,7 @@ def _render_knockout_bracket(st: Any, bracket: dict[str, Any], champion_odds: di
     ]
     final_match = bracket.get("final")
     third_place = bracket.get("third_place")
-    champion = max(champion_odds, key=champion_odds.get) if champion_odds else None
+    champion = final_match.get("winner") if final_match else None
 
     # Build round columns HTML
     rounds_html = []
@@ -729,45 +782,15 @@ def _render_knockout_bracket(st: Any, bracket: dict[str, Any], champion_odds: di
     )
     st.markdown(full_html, unsafe_allow_html=True)
     
-    # Render hidden Streamlit buttons to handle JS clicks from the bracket HTML.
-    # We put them in a dedicated container with a marker, and hide all element 
-    # containers that follow the marker within that container.
-    all_matches = []
-    for title, matches in rounds_config:
-        if matches:
-            all_matches.extend(matches)
-    if final_match:
-        all_matches.append(final_match)
-    if third_place:
-        all_matches.append(third_place)
-
-    with st.container():
-        st.markdown(
-            """
-            <div class="hidden-button-marker"></div>
-            <style>
-            /* Hide all Streamlit element containers that come AFTER the marker's container, within this specific parent */
-            div[data-testid="stElementContainer"]:has(.hidden-button-marker) ~ div[data-testid="stElementContainer"] {
-                display: none !important;
-            }
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
-        for m in all_matches:
-            home = m.get("home_team", "TBD")
-            away = m.get("away_team", "TBD")
-            if home != "TBD" and away != "TBD":
-                match_id = m.get("match_id", f"{home}_{away}").replace(" ", "_")
-                if st.button(f"hidden_{match_id}", key=f"btn_hidden_{match_id}"):
-                    show_match_analysis_modal(home, away, m.get("match_id"))
+    # The bracket remains snapshot-backed, but we avoid hidden helper controls here
+    # because broad CSS selectors can accidentally blank the whole page in Streamlit.
 
 
-def _render_overview(st: Any) -> None:
+def _render_overview(st: Any, snapshot_id: str) -> None:
     """Render the tournament-board overview."""
 
-    standings = load_latest_standings()
-    bracket_data = load_latest_bracket()
+    standings = load_latest_standings(snapshot_id)
+    bracket_data = load_latest_bracket(snapshot_id)
     snapshots = list_snapshot_timeline()
 
     if not snapshots:
@@ -803,12 +826,15 @@ def _render_overview(st: Any) -> None:
     _render_html(st, '<div class="knockout-shell"><div class="knockout-title">Knockout Bracket</div></div>')
 
     if bracket:
-        _render_knockout_bracket(st, bracket, champion_odds)
+        _render_knockout_bracket(st, bracket, champion_odds, snapshot_id)
     else:
         st.info("No knockout bracket data available yet.")
 
     if snapshots:
-        _render_html(st, f'<div class="snapshots-note">Snapshots loaded: {", ".join(snapshots)}</div>')
+        _render_html(
+            st,
+            f'<div class="snapshots-note">Snapshots loaded: {", ".join(snapshot["snapshot_id"] for snapshot in snapshots)}</div>',
+        )
 
 
 
@@ -1051,6 +1077,145 @@ def show_match_analysis_modal(home: str, away: str, match_id: str | None = None)
     _modal()
 
 
+def show_snapshot_match_analysis_modal(home: str, away: str, snapshot_id: str, match_id: str | None = None):
+    import plotly.graph_objects as go
+    import streamlit as st
+
+    match_lookup = _snapshot_match_lookup(snapshot_id)
+    match_record = match_lookup.get(match_id or "")
+    team_lookup = _team_features_lookup(snapshot_id)
+    rosters = _snapshot_rosters(snapshot_id)
+    snapshot_state = load_snapshot_file("state.json", snapshot_id=snapshot_id, default={})
+
+    @st.dialog("Match Analysis", width="large")
+    def _modal():
+        st.markdown(f"### {_local_flag_html(home)} {home} vs {_local_flag_html(away)} {away}", unsafe_allow_html=True)
+        if not match_record:
+            st.info("This match is not available in the selected snapshot.")
+            return
+
+        payload = match_record["payload"]
+        if match_record["match_type"] == "group":
+            prediction = payload.get("prediction_details", {})
+            score_home = payload.get("predicted_home_goals", "-")
+            score_away = payload.get("predicted_away_goals", "-")
+            probs = {
+                "home_win": payload.get("home_win_probability", 0.0),
+                "draw": payload.get("draw_probability", 0.0),
+                "away_win": payload.get("away_win_probability", 0.0),
+            }
+            advancement = {}
+            confidence_label = payload.get("confidence_label", "Unknown")
+            confidence_value = payload.get("confidence", 0.0)
+        else:
+            prediction = payload.get("prediction", {})
+            score_home = payload.get("score", {}).get("home", "-")
+            score_away = payload.get("score", {}).get("away", "-")
+            probs = prediction.get("outcome_probabilities", {})
+            advancement = prediction.get("advancement_probabilities", {})
+            confidence_label = prediction.get("confidence", {}).get("label", "Unknown")
+            confidence_value = prediction.get("confidence", {}).get("overall", 0.0)
+
+        st.write(f"**Predicted Score**: {home} {score_home} - {score_away} {away}")
+        st.write(f"**Win Probabilities**: {home} ({probs.get('home_win', 0.0):.1%}) | Draw ({probs.get('draw', 0.0):.1%}) | {away} ({probs.get('away_win', 0.0):.1%})")
+        if advancement:
+            st.write(f"**Advance Odds**: {home} ({advancement.get('home', 0.0):.1%}) | {away} ({advancement.get('away', 0.0):.1%})")
+        st.write(f"**Confidence**: {confidence_label} ({confidence_value}/100)")
+
+        state_row = snapshot_state.get(match_id or "", {})
+        if state_row.get("state") == "RESOLVED":
+            st.success(
+                f"Resolved in this snapshot: {state_row.get('home_team', home)} {state_row.get('home_goals')} - {state_row.get('away_goals')} {state_row.get('away_team', away)}"
+            )
+
+        with st.expander("Snapshot Inputs", expanded=False):
+            features = prediction.get("features", {})
+            contextual = prediction.get("contextual_factors", {})
+            if features:
+                st.markdown("**Features**")
+                st.json(features)
+            if contextual:
+                st.markdown("**Contextual Factors**")
+                st.json(contextual)
+            if not features and not contextual:
+                st.info("This snapshot stores only summary prediction data for this match.")
+
+        home_stats = team_lookup.get(home, {})
+        away_stats = team_lookup.get(away, {})
+        col1, col2 = st.columns([1, 1])
+
+        with col1:
+            st.subheader("Snapshot Team Features")
+            if home_stats or away_stats:
+                metrics = [
+                    ("Elo", "elo"),
+                    ("Ranking", "ranking_points"),
+                    ("Form", "form_points_avg"),
+                    ("Attack", "attack_strength"),
+                    ("Defense", "defense_strength"),
+                    ("Squad Rating", "squad_avg_rating"),
+                ]
+                for label, key in metrics:
+                    st.write(f"**{label}**: {home} {float(home_stats.get(key, 0) or 0):.2f} | {away} {float(away_stats.get(key, 0) or 0):.2f}")
+            else:
+                st.info("No team features saved in this snapshot.")
+
+        with col2:
+            st.subheader("Team Comparison")
+            metrics = [
+                ("Elo Rating", "elo"),
+                ("Squad Rating", "squad_avg_rating"),
+                ("Starting XI Rating", "starting_xi_rating"),
+                ("Form", "form_points_avg"),
+                ("Attack", "attack_strength"),
+                ("Defense", "defense_strength"),
+            ]
+            y_labels = [label for label, _ in metrics]
+            home_vals = [float(home_stats.get(key, 0) or 0) for _, key in metrics]
+            away_vals = [float(away_stats.get(key, 0) or 0) for _, key in metrics]
+            fig = go.Figure()
+            fig.add_trace(go.Bar(y=y_labels, x=[-value for value in home_vals], name=home, orientation="h", marker=dict(color="#1f8f6a"), text=[f"{value:.1f}" for value in home_vals], textposition="outside"))
+            fig.add_trace(go.Bar(y=y_labels, x=away_vals, name=away, orientation="h", marker=dict(color="#123f37"), text=[f"{value:.1f}" for value in away_vals], textposition="outside"))
+            fig.update_layout(barmode="relative", title_text="Snapshot Team Strengths", yaxis=dict(autorange="reversed"), xaxis=dict(showticklabels=False), margin=dict(l=0, r=0, t=30, b=0), height=300, showlegend=False)
+            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+        with st.expander("Squad Comparison", expanded=False):
+            roster_rows: list[dict[str, Any]] = []
+            for team_name, players in rosters.items():
+                if not isinstance(players, list):
+                    continue
+                for player in players:
+                    if not isinstance(player, dict):
+                        continue
+                    roster_rows.append({"team": team_name, "short_name": player.get("short_name", player.get("name", "Unknown")), "club_name": player.get("club_name", player.get("club", "Unknown")), "overall": player.get("overall", player.get("rating", 0)), "market_value_eur": player.get("market_value_eur", player.get("value", 0))})
+            rosters_frame = pd.DataFrame(roster_rows)
+            if rosters_frame.empty:
+                st.info("No roster data saved in this snapshot.")
+            else:
+                rosters_frame["overall"] = pd.to_numeric(rosters_frame["overall"], errors="coerce").fillna(0)
+                rosters_frame["market_value_eur"] = pd.to_numeric(rosters_frame["market_value_eur"], errors="coerce").fillna(0)
+
+                def render_squad(team_name: str) -> None:
+                    team_roster = rosters_frame[rosters_frame["team"] == team_name]
+                    if team_roster.empty:
+                        st.info("No squad data available.")
+                        return
+                    total_value = team_roster["market_value_eur"].sum() / 1_000_000
+                    avg_rating = team_roster["overall"].mean()
+                    st.markdown(f"**Total Squad Value**: EUR {total_value:,.1f}M  |  **Avg Rating**: {avg_rating:.1f}")
+                    st.dataframe(team_roster[["short_name", "club_name", "overall", "market_value_eur"]].sort_values("overall", ascending=False), hide_index=True, column_config={"short_name": "Player", "club_name": "Club", "overall": st.column_config.NumberColumn("Rating", format="%d"), "market_value_eur": st.column_config.NumberColumn("Value (EUR)", format="%d")}, height=300)
+
+                squad_col1, squad_col2 = st.columns(2)
+                with squad_col1:
+                    st.markdown(f"#### {home}")
+                    render_squad(home)
+                with squad_col2:
+                    st.markdown(f"#### {away}")
+                    render_squad(away)
+
+    _modal()
+
+
 
 def main() -> None:
     """Launch the optional Streamlit dashboard if available."""
@@ -1061,29 +1226,56 @@ def main() -> None:
         raise SystemExit("Streamlit is not installed. Install requirements to use the dashboard.") from exc
 
     st.set_page_config(page_title="World Cup Prediction Baseline", layout="wide")
+    snapshots = list_snapshot_timeline()
+    if not snapshots:
+        _ensure_baseline_snapshot()
+        snapshots = list_snapshot_timeline()
     
     # Place toggle in the sidebar or at the top of the page. Top of page is fine.
-    col1, col2 = st.columns([0.85, 0.15])
+    col1, col2 = st.columns([0.7, 0.3])
     with col1:
         st.title("World Cup Prediction Baseline")
         st.caption("Offline demo pipeline with adaptive snapshots.")
     with col2:
-        st.write("")
-        st.write("") # padding
         dark_mode = st.toggle("🌙 Dark Mode", value=False)
         
+    selected_snapshot_id = snapshots[-1]["snapshot_id"] if snapshots else ""
+    selected_snapshot = _find_snapshot(selected_snapshot_id, snapshots) if snapshots else None
+    if snapshots:
+        selected_snapshot_id = st.selectbox(
+            "Snapshot",
+            options=[snapshot["snapshot_id"] for snapshot in snapshots],
+            index=len(snapshots) - 1,
+            format_func=lambda snapshot_id: _snapshot_label(
+                _find_snapshot(snapshot_id, snapshots)
+                or {"snapshot_id": snapshot_id, "descriptor": snapshot_id, "resolved_matches": [], "model_metadata": {}}
+            ),
+        )
+        selected_snapshot = _find_snapshot(selected_snapshot_id, snapshots)
+
     _inject_styles(st, dark_mode=dark_mode)
+    if selected_snapshot is not None:
+        current_model = current_model_metadata()
+        selected_signature = ((selected_snapshot.get("model_metadata") or {}).get("signature")) or "unknown"
+        if selected_signature != current_model["signature"]:
+            st.warning(
+                f"Selected snapshot uses model `{selected_signature}` while current artifacts are `{current_model['signature']}`."
+            )
+            if st.button("Refresh Selected Snapshot For Current Model", key="refresh_selected_snapshot"):
+                with st.spinner("Refreshing selected snapshot with the current trained model..."):
+                    _refresh_snapshot(selected_snapshot_id)
+                st.rerun()
 
     overview, standings_tab, predictions_tab, accuracy_tab, compare_tab = st.tabs(
         ["Overview", "Standings", "Predictions", "Accuracy", "Compare"]
     )
 
     with overview:
-        _render_overview(st)
+        _render_overview(st, selected_snapshot_id)
 
     with standings_tab:
         st.subheader("Current Group Standings")
-        standings = load_latest_standings()
+        standings = load_latest_standings(selected_snapshot_id)
         if standings:
             for group_id, rows in sorted(standings.items()):
                 st.markdown(f"### Group {group_id}")
@@ -1105,9 +1297,11 @@ def main() -> None:
     with predictions_tab:
         st.subheader("Match Predictions")
         st.caption("Click a row to view detailed match analysis.")
-        table = probability_table()
+        table = probability_table(selected_snapshot_id)
         if table:
             frame = pd.DataFrame(table)
+            if "prediction_details" in frame.columns:
+                frame = frame.drop(columns=["prediction_details"])
             
             from src.config import RAW_FIXTURES_FILE
             if RAW_FIXTURES_FILE.exists():
@@ -1152,14 +1346,16 @@ def main() -> None:
                 away = clean_frame.iloc[selected_idx]["away_team"]
                 match_id = clean_frame.iloc[selected_idx]["match_id"]
                 
-                show_match_analysis_modal(home, away, match_id)
+                show_snapshot_match_analysis_modal(home, away, selected_snapshot_id, match_id)
 
     with accuracy_tab:
-        st.subheader("Prediction Ledger Summary")
-        st.json(accuracy_summary())
+        st.subheader("Snapshot Accuracy Summary")
+        st.json(accuracy_summary(selected_snapshot_id))
 
     with compare_tab:
-        st.write("Use the API or CLI compare command to generate detailed snapshot comparisons.")
+        st.write("Selected snapshot metadata")
+        if selected_snapshot is not None:
+            st.json(selected_snapshot)
 
 
 if __name__ == "__main__":

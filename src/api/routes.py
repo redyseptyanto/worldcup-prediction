@@ -57,7 +57,7 @@ def feature_importance() -> dict[str, object]:
 @router.post("/ingest/result")
 def ingest_result(request: IngestRequest) -> dict[str, object]:
     engine = AdaptiveEngine()
-    return engine.ingest_result(request.match_id, request.home_goals, request.away_goals)
+    return engine.ingest_result(request.match_id, request.home_goals, request.away_goals, winner=request.winner)
 
 
 @router.get("/state/matches")
@@ -69,4 +69,4 @@ def state_matches() -> dict[str, object]:
 @router.get("/snapshots")
 def list_snapshots() -> dict[str, object]:
     manager = SnapshotManager()
-    return {"snapshots": manager.list_snapshots()}
+    return {"snapshots": manager.list_snapshot_details()}

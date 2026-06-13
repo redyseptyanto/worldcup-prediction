@@ -17,6 +17,7 @@ from src.config import (
 )
 from src.data.collector import ensure_sample_data
 from src.data.preprocessors import clean_fixtures, clean_historical_matches
+from src.simulation.knockout_stage import all_knockout_match_templates
 from src.utils.constants import MATCH_STATE_PENDING
 from src.utils.helpers import load_json, save_json
 from src.utils.logger import get_logger
@@ -83,9 +84,25 @@ def initialize_state_store() -> dict[str, Any]:
                 "state": MATCH_STATE_PENDING,
                 "home_goals": None,
                 "away_goals": None,
+                "winner": None,
             }
             for row in fixtures.itertuples(index=False)
         }
+        for template in all_knockout_match_templates():
+            payload[template["match_id"]] = {
+                "match_id": template["match_id"],
+                "date": "",
+                "stage": template["stage"],
+                "group": "",
+                "home_team": "TBD",
+                "away_team": "TBD",
+                "state": MATCH_STATE_PENDING,
+                "home_goals": None,
+                "away_goals": None,
+                "winner": None,
+                "annex_c": template["annex_c"],
+                "round": template["round"],
+            }
         save_json(MATCH_STATE_FILE, payload)
     if not LEDGER_FILE.exists():
         pd.DataFrame(
