@@ -167,10 +167,20 @@ def _inject_styles(st: Any, dark_mode: bool = False) -> None:
             background: var(--bg-color);
             color: var(--text-color);
         }}
+        header[data-testid="stHeader"],
+        div[data-testid="stToolbar"],
+        div[data-testid="stDecoration"],
+        #MainMenu,
+        footer {{
+            display: none !important;
+        }}
         .block-container {{
-            padding-top: 1.5rem;
+            padding-top: 0.75rem;
             padding-bottom: 2rem;
-            max-width: 1280px;
+            max-width: none;
+            width: 100%;
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
         }}
         .overview-shell {{
             background: transparent;
@@ -251,7 +261,7 @@ def _inject_styles(st: Any, dark_mode: bool = False) -> None:
             margin-top: 1.25rem;
             border: 1px solid var(--card-border);
             border-radius: 20px;
-            padding: 1.2rem 1.2rem 0.8rem;
+            padding: 1rem 1rem 0.8rem;
             box-shadow: 0 14px 28px var(--card-shadow);
             background: var(--card-bg);
         }}
@@ -349,45 +359,61 @@ def _inject_styles(st: Any, dark_mode: bool = False) -> None:
             overflow-x: auto;
             padding-bottom: 1rem;
         }}
-        .bracket-container {{
+        .bracket-layout {{
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+            gap: 0.45rem;
+            min-width: 1280px;
+            width: 100%;
+            padding: 0.25rem 0 0.5rem;
+        }}
+        .bracket-side {{
             display: flex;
             align-items: stretch;
             gap: 0;
-            min-width: max-content;
+            flex: 1 1 0;
+        }}
+        .bracket-side-left {{
+            justify-content: flex-end;
+        }}
+        .bracket-side-right {{
+            justify-content: flex-start;
         }}
         .bracket-round {{
             display: flex;
             flex-direction: column;
             justify-content: space-around;
-            min-width: 200px;
-            padding: 0 6px;
+            min-width: 148px;
+            padding: 0 4px;
         }}
         .bracket-round-title {{
             text-align: center;
-            font-size: 0.7rem;
+            font-size: 0.62rem;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.08em;
             color: var(--knockout-title);
-            padding: 0.4rem 0;
-            margin-bottom: 0.3rem;
+            padding: 0.38rem 0.18rem;
+            margin-bottom: 0.55rem;
             background: var(--bracket-title-bg);
-            border-radius: 8px;
-            position: sticky;
-            top: 0;
-            z-index: 2;
+            border-radius: 999px;
         }}
-        
         .bracket-pair {{
             display: flex;
             flex-direction: column;
             justify-content: space-around;
             position: relative;
-            padding-right: 16px;
-            margin: 4px 0;
-            flex-grow: 1;
+            margin: 6px 0;
+            flex: 1 1 auto;
         }}
-        .bracket-round:not(:last-child) .bracket-pair::after {{
+        .bracket-side-left .bracket-pair {{
+            padding-right: 16px;
+        }}
+        .bracket-side-right .bracket-pair {{
+            padding-left: 16px;
+        }}
+        .bracket-side-left .bracket-round:not(:last-child) .bracket-pair::after {{
             content: '';
             position: absolute;
             right: 0;
@@ -397,37 +423,62 @@ def _inject_styles(st: Any, dark_mode: bool = False) -> None:
             border-right: 2px solid var(--line-color);
             border-top: 2px solid var(--line-color);
             border-bottom: 2px solid var(--line-color);
-            border-top-right-radius: 6px;
-            border-bottom-right-radius: 6px;
+            border-top-right-radius: 8px;
+            border-bottom-right-radius: 8px;
         }}
-        .bracket-round:not(:first-child) .bracket-match::before {{
+        .bracket-side-left .bracket-round:not(:first-child) .bracket-match::before {{
             content: '';
             position: absolute;
-            left: -22px;
+            left: -18px;
             top: 50%;
             width: 16px;
             height: 2px;
             background: var(--line-color);
+            transform: translateY(-50%);
         }}
-
+        .bracket-side-right .bracket-round:not(:first-child) .bracket-pair::before {{
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 25%;
+            bottom: 25%;
+            width: 16px;
+            border-left: 2px solid var(--line-color);
+            border-top: 2px solid var(--line-color);
+            border-bottom: 2px solid var(--line-color);
+            border-top-left-radius: 8px;
+            border-bottom-left-radius: 8px;
+        }}
+        .bracket-side-right .bracket-round:not(:last-child) .bracket-match::after {{
+            content: '';
+            position: absolute;
+            right: -18px;
+            top: 50%;
+            width: 16px;
+            height: 2px;
+            background: var(--line-color);
+            transform: translateY(-50%);
+        }}
         .bracket-match {{
             border: 1px solid var(--match-card-border);
             border-radius: 10px;
-            margin: 4px 0;
+            margin: 5px 0;
             background: var(--match-card-bg);
             overflow: hidden;
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             position: relative;
-            transition: box-shadow 0.15s ease;
+            transition: box-shadow 0.15s ease, transform 0.15s ease;
+            width: 100%;
         }}
         .bracket-match:hover {{
             box-shadow: 0 4px 12px var(--bracket-match-hover);
+            transform: translateY(-1px);
         }}
         .bracket-team-row {{
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 5px 8px;
+            padding: 5px 6px;
             gap: 4px;
             border-bottom: 1px solid var(--table-td-border);
         }}
@@ -445,12 +496,12 @@ def _inject_styles(st: Any, dark_mode: bool = False) -> None:
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 200px;
+            max-width: 116px;
             color: var(--text-color);
         }}
         .bracket-team-name .flag-icon {{
-            height: 0.95em;
-            width: 1.3em;
+            height: 0.9em;
+            width: 1.2em;
             flex-shrink: 0;
         }}
         .bracket-score {{
@@ -461,10 +512,10 @@ def _inject_styles(st: Any, dark_mode: bool = False) -> None:
         }}
         .bracket-path {{
             display: inline-block;
-            margin-left: 4px;
-            padding: 1px 5px;
+            margin-left: 3px;
+            padding: 1px 4px;
             border-radius: 4px;
-            font-size: 0.6rem;
+            font-size: 0.52rem;
             font-weight: 700;
             background: var(--bracket-title-bg);
             color: var(--match-round-text);
@@ -474,7 +525,7 @@ def _inject_styles(st: Any, dark_mode: bool = False) -> None:
         }}
         .bracket-annex-c {{
             text-align: center;
-            font-size: 0.55rem;
+            font-size: 0.48rem;
             font-weight: 800;
             letter-spacing: 0.06em;
             text-transform: uppercase;
@@ -482,61 +533,78 @@ def _inject_styles(st: Any, dark_mode: bool = False) -> None:
             padding: 2px 0;
             border-bottom: 1px solid var(--table-td-border);
         }}
-        .bracket-champion-banner {{
+        .bracket-center-column {{
+            flex: 0 0 190px;
+            min-width: 190px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-width: 180px;
-            padding: 0 10px;
+            gap: 0.7rem;
+            padding: 0 6px;
+        }}
+        .bracket-center-title {{
+            width: 100%;
+            margin-bottom: 0;
+        }}
+        .bracket-center-match {{
+            width: 100%;
             position: relative;
         }}
-        /* Line from Semi to Final */
-        .bracket-champion-banner::before {{
+        .bracket-center-match::before,
+        .bracket-center-match::after {{
             content: '';
             position: absolute;
-            left: -16px;
             top: 50%;
-            width: 16px;
+            width: 12px;
             height: 2px;
             background: var(--line-color);
+            transform: translateY(-50%);
+        }}
+        .bracket-center-match::before {{
+            left: -12px;
+        }}
+        .bracket-center-match::after {{
+            right: -12px;
         }}
         .bracket-champion-inner {{
             border: 2px solid var(--champion-label);
-            border-radius: 16px;
+            border-radius: 18px;
             background: linear-gradient(180deg, var(--champion-bg-start) 0%, var(--card-bg) 100%);
-            padding: 1rem 1.2rem;
+            padding: 0.85rem 0.8rem;
             text-align: center;
             width: 100%;
+            box-shadow: 0 12px 26px var(--card-shadow);
         }}
         .bracket-champion-inner .champion-trophy {{
-            font-size: 2.2rem;
+            font-size: 1.55rem;
+            margin-bottom: 0.25rem;
         }}
         .bracket-champion-inner .champion-label {{
-            font-size: 0.65rem;
+            font-size: 0.56rem;
         }}
         .bracket-champion-inner .champion-team {{
-            font-size: 1rem;
+            font-size: 0.9rem;
         }}
         .bracket-champion-inner .champion-odds {{
-            font-size: 0.78rem;
+            font-size: 0.68rem;
         }}
         .bracket-third-place {{
-            margin-top: 0.6rem;
+            margin-top: 0.1rem;
             border: 1px solid var(--card-border);
-            border-radius: 10px;
+            border-radius: 14px;
             padding: 6px;
             width: 100%;
             background: var(--match-card-bg);
         }}
         .bracket-third-label {{
             text-align: center;
-            font-size: 0.6rem;
+            font-size: 0.54rem;
             font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 0.06em;
+            letter-spacing: 0.08em;
             color: var(--champion-label);
-            margin-bottom: 3px;
+            margin-bottom: 4px;
         }}
         </style>
         """,
@@ -714,7 +782,7 @@ def _render_bracket_match_html(match: dict[str, Any]) -> str:
     )
 
 
-def _render_knockout_bracket(st: Any, bracket: dict[str, Any], champion_odds: dict[str, float], snapshot_id: str) -> None:
+def _render_knockout_bracket_legacy(st: Any, bracket: dict[str, Any], champion_odds: dict[str, float], snapshot_id: str) -> None:
     """Render the full knockout bracket from R32 to Final as a horizontally scrollable tree."""
 
     rounds_config = [
@@ -781,9 +849,99 @@ def _render_knockout_bracket(st: Any, bracket: dict[str, Any], champion_odds: di
         + '</div></div>'
     )
     st.markdown(full_html, unsafe_allow_html=True)
-    
-    # The bracket remains snapshot-backed, but we avoid hidden helper controls here
-    # because broad CSS selectors can accidentally blank the whole page in Streamlit.
+
+
+def _render_bracket_round_column(title: str, matches: list[dict[str, Any]]) -> str:
+    """Return one bracket column with grouped match pairs."""
+
+    if not matches:
+        return ""
+
+    match_pairs_html = []
+    for index in range(0, len(matches), 2):
+        pair_html = "".join(_render_bracket_match_html(match) for match in matches[index : index + 2])
+        match_pairs_html.append(f'<div class="bracket-pair">{pair_html}</div>')
+
+    return (
+        f'<div class="bracket-round">'
+        f'<div class="bracket-round-title">{title}</div>'
+        f'{"".join(match_pairs_html)}'
+        f'</div>'
+    )
+
+
+def _render_knockout_bracket(st: Any, bracket: dict[str, Any], champion_odds: dict[str, float], snapshot_id: str) -> None:
+    """Render the full knockout bracket as a mirrored tree with a centered final."""
+
+    round_of_32 = bracket.get("round_of_32", [])
+    round_of_16 = bracket.get("round_of_16", [])
+    quarter_finals = bracket.get("quarter_finals", [])
+    semi_finals = bracket.get("semi_finals", [])
+    final_match = bracket.get("final")
+    third_place = bracket.get("third_place")
+    champion = final_match.get("winner") if final_match else None
+
+    left_rounds = [
+        ("Round of 32", round_of_32[: len(round_of_32) // 2]),
+        ("Round of 16", round_of_16[: len(round_of_16) // 2]),
+        ("Quarter-final", quarter_finals[: len(quarter_finals) // 2]),
+        ("Semi-final", semi_finals[: len(semi_finals) // 2]),
+    ]
+    right_rounds = [
+        ("Semi-final", semi_finals[len(semi_finals) // 2 :]),
+        ("Quarter-final", quarter_finals[len(quarter_finals) // 2 :]),
+        ("Round of 16", round_of_16[len(round_of_16) // 2 :]),
+        ("Round of 32", round_of_32[len(round_of_32) // 2 :]),
+    ]
+
+    left_html = "".join(
+        _render_bracket_round_column(title, matches)
+        for title, matches in left_rounds
+        if matches
+    )
+    right_html = "".join(
+        _render_bracket_round_column(title, matches)
+        for title, matches in right_rounds
+        if matches
+    )
+
+    champion_flag = _local_flag_html(champion) if champion else ""
+    champion_prob = champion_odds.get(champion, 0.0) if champion else 0.0
+    final_html = _render_bracket_match_html(final_match) if final_match else ""
+    third_html = (
+        f'<div class="bracket-third-place">'
+        f'<div class="bracket-third-label">Play-off for Third Place</div>'
+        f'{_render_bracket_match_html(third_place)}'
+        f'</div>'
+        if third_place
+        else ""
+    )
+
+    center_html = (
+        f'<div class="bracket-center-column">'
+        f'<div class="bracket-round-title bracket-center-title">Final</div>'
+        f'<div class="bracket-center-match">{final_html}</div>'
+        f'<div class="bracket-champion-inner">'
+        f'<div class="champion-trophy">&#127942;</div>'
+        f'<div class="champion-label">Projected Champion</div>'
+        f'<div class="champion-team">{champion_flag}{champion if champion else "TBD"}</div>'
+        f'<div class="champion-odds">{champion_prob:.1%} title probability</div>'
+        f'</div>'
+        f'{third_html}'
+        f'</div>'
+    )
+
+    full_html = (
+        '<div class="knockout-shell">'
+        '<div class="knockout-title">Knockout Bracket</div>'
+        '<div class="bracket-scroll">'
+        '<div class="bracket-layout">'
+        f'<div class="bracket-side bracket-side-left">{left_html}</div>'
+        f'{center_html}'
+        f'<div class="bracket-side bracket-side-right">{right_html}</div>'
+        '</div></div></div>'
+    )
+    _render_html(st, full_html)
 
 
 def _render_overview(st: Any, snapshot_id: str) -> None:
@@ -815,20 +973,26 @@ def _render_overview(st: Any, snapshot_id: str) -> None:
 
     if standings:
         groups = sorted(standings.items())
-        for row_start in range(0, len(groups), 3):
-            columns = st.columns(3)
-            for column, (group_id, rows) in zip(columns, groups[row_start : row_start + 3]):
+        for row_start in range(0, len(groups), 4):
+            columns = st.columns(4)
+            for column, (group_id, rows) in zip(columns, groups[row_start : row_start + 4]):
                 with column:
                     _render_group_card(st, group_id, rows)
     else:
         st.info("No standings snapshot is available yet.")
 
-    _render_html(st, '<div class="knockout-shell"><div class="knockout-title">Knockout Bracket</div></div>')
-
     if bracket:
         _render_knockout_bracket(st, bracket, champion_odds, snapshot_id)
     else:
-        st.info("No knockout bracket data available yet.")
+        _render_html(
+            st,
+            """
+<div class="knockout-shell">
+<div class="knockout-title">Knockout Bracket</div>
+<div class="match-meta">No knockout bracket data available yet.</div>
+</div>
+            """,
+        )
 
     if snapshots:
         _render_html(

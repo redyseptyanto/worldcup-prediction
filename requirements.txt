@@ -8,3 +8,5 @@ httpx>=0.28
 pytest>=8.3
 streamlit>=1.46
 plotly>=6.1
+ipykernel>=7.3
+nbformat>=5.10
