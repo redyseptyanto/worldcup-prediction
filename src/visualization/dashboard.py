@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import Any
 
 import base64
@@ -21,12 +22,22 @@ def _render_html(st, html_str: str) -> None:
     st.markdown(re.sub(r'\n\s+', '\n', html_str), unsafe_allow_html=True)
 
 from src.visualization.accuracy_charts import accuracy_summary
-from src.visualization.bracket import load_latest_bracket
+from src.visualization.bracket import load_latest_bracket, repair_snapshot_bracket
 from src.visualization.evolution_timeline import list_snapshot_timeline
 from src.visualization.head_to_head import get_head_to_head
 from src.visualization.probability_heatmap import probability_table
 from src.visualization.snapshot_store import load_snapshot_file
 from src.visualization.standings import load_latest_standings
+
+
+@lru_cache(maxsize=128)
+def _cached_flag_b64(team: str) -> str:
+    path = FLAGS_DIR / f"{team}.png"
+    if path.exists():
+        with open(path, "rb") as f:
+            data = f.read()
+        return f"data:image/png;base64,{base64.b64encode(data).decode()}"
+    return ""
 
 
 def _ensure_baseline_snapshot() -> None:
@@ -583,11 +594,22 @@ def _inject_styles(st: Any, dark_mode: bool = False) -> None:
         .bracket-champion-inner .champion-label {{
             font-size: 0.56rem;
         }}
-        .bracket-champion-inner .champion-team {{
-            font-size: 0.9rem;
+        .bracket-champion-inner .champion-flag {{
+            margin-top: 0.45rem;
+            line-height: 1;
         }}
-        .bracket-champion-inner .champion-odds {{
-            font-size: 0.68rem;
+        .bracket-champion-inner .champion-flag .flag-icon {{
+            height: 2.6rem;
+            width: 3.6rem;
+            margin-right: 0;
+            vertical-align: middle;
+            border-radius: 4px;
+        }}
+        .bracket-champion-inner .champion-name {{
+            margin-top: 0.4rem;
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--text-color);
         }}
         .bracket-third-place {{
             margin-top: 0.1rem;
@@ -615,12 +637,7 @@ def _inject_styles(st: Any, dark_mode: bool = False) -> None:
 
 def _local_flag_b64(team: str) -> str:
     """Return base64 Data URI of local flag."""
-    path = FLAGS_DIR / f"{team}.png"
-    if path.exists():
-        with open(path, "rb") as f:
-            data = f.read()
-        return f"data:image/png;base64,{base64.b64encode(data).decode()}"
-    return ""
+    return _cached_flag_b64(team)
 
 def _local_flag_html(team: str) -> str:
     """Return HTML img tag for local flag."""
@@ -706,6 +723,8 @@ def _render_match_card(st: Any, round_label: str, match: dict[str, Any]) -> None
     score = match.get("score", {})
     winner = match.get("winner", "")
     probability = max(prediction.get("outcome_probabilities", {}).values(), default=0.0)
+    exact_score = prediction.get("most_likely_exact_score", {})
+    advancement_method = match.get("advancement_method") or prediction.get("advancement_method", "")
 
     def team_line(team: str, goals: Any) -> str:
         winner_mark = '<span class="winner-mark">Qualified</span>' if team == winner else ""
@@ -727,6 +746,10 @@ def _render_match_card(st: Any, round_label: str, match: dict[str, Any]) -> None
                 Most likely scoreline {prediction.get('predicted_score', {}).get('home', '-')}
                 -
                 {prediction.get('predicted_score', {}).get('away', '-')}
+                | exact-score peak {exact_score.get('home', '-')}
+                -
+                {exact_score.get('away', '-')}
+                {f" | projected via pens" if advancement_method == "penalties" else ""}
                 | confidence {prediction.get('confidence', {}).get('overall', 0):.1f}
                 | strongest single-match outcome {probability:.1%}
             </div>
@@ -816,7 +839,6 @@ def _render_knockout_bracket_legacy(st: Any, bracket: dict[str, Any], champion_o
 
     # Final + Champion column
     champion_flag = _local_flag_html(champion) if champion else ""
-    champion_prob = champion_odds.get(champion, 0.0) if champion else 0.0
     final_html = _render_bracket_match_html(final_match) if final_match else ""
     third_html = ""
     if third_place:
@@ -832,10 +854,10 @@ def _render_knockout_bracket_legacy(st: Any, bracket: dict[str, Any], champion_o
         f'<div class="bracket-round-title">Final</div>'
         f'{final_html}'
         f'<div class="bracket-champion-inner" style="margin-top:8px;">'
-        f'<div class="champion-trophy">{champion_flag if champion else "🏆"}</div>'
+        f'<div class="champion-trophy">&#127942;</div>'
         f'<div class="champion-label">Projected Champion</div>'
-        f'<div class="champion-team">{champion_flag} {champion if champion else "TBD"}</div>'
-        f'<div class="champion-odds">{champion_prob:.1%} title probability</div>'
+        f'<div class="champion-flag">{champion_flag if champion else "&#127942;"}</div>'
+        f'<div class="champion-name">{champion if champion else "TBD"}</div>'
         f'</div>'
         f'{third_html}'
         f'</div>'
@@ -906,7 +928,6 @@ def _render_knockout_bracket(st: Any, bracket: dict[str, Any], champion_odds: di
     )
 
     champion_flag = _local_flag_html(champion) if champion else ""
-    champion_prob = champion_odds.get(champion, 0.0) if champion else 0.0
     final_html = _render_bracket_match_html(final_match) if final_match else ""
     third_html = (
         f'<div class="bracket-third-place">'
@@ -924,8 +945,8 @@ def _render_knockout_bracket(st: Any, bracket: dict[str, Any], champion_odds: di
         f'<div class="bracket-champion-inner">'
         f'<div class="champion-trophy">&#127942;</div>'
         f'<div class="champion-label">Projected Champion</div>'
-        f'<div class="champion-team">{champion_flag}{champion if champion else "TBD"}</div>'
-        f'<div class="champion-odds">{champion_prob:.1%} title probability</div>'
+        f'<div class="champion-flag">{champion_flag if champion else "&#127942;"}</div>'
+        f'<div class="champion-name">{champion if champion else "TBD"}</div>'
         f'</div>'
         f'{third_html}'
         f'</div>'
@@ -945,12 +966,11 @@ def _render_knockout_bracket(st: Any, bracket: dict[str, Any], champion_odds: di
     _render_html(st, full_html)
 
 
-def _render_overview(st: Any, snapshot_id: str) -> None:
+def _render_overview(st: Any, snapshot_id: str, snapshots: list[dict[str, Any]]) -> None:
     """Render the tournament-board overview."""
 
     standings = load_latest_standings(snapshot_id)
     bracket_data = load_latest_bracket(snapshot_id)
-    snapshots = list_snapshot_timeline()
 
     if not snapshots:
         st.warning("No baseline snapshot is available yet.")
@@ -1031,6 +1051,7 @@ def show_match_analysis_modal(home: str, away: str, match_id: str | None = None)
 
         probs = prediction["outcome_probabilities"]
         score = prediction["predicted_score"]
+        exact_score = prediction.get("most_likely_exact_score", {})
         penalty_home = penalty_home_probability(
             prediction["features"]["home_penalty_win_rate"],
             prediction["features"]["away_penalty_win_rate"],
@@ -1038,13 +1059,21 @@ def show_match_analysis_modal(home: str, away: str, match_id: str | None = None)
         )
         home_advance = probs["home_win"] + probs["draw"] * penalty_home
         away_advance = probs["away_win"] + probs["draw"] * (1.0 - penalty_home)
+        advancement_method = "penalties" if max(probs["draw"] * penalty_home, probs["draw"] * (1.0 - penalty_home)) > max(probs["home_win"], probs["away_win"]) else "regulation"
         
-        st.write(f"**Most Likely Scoreline**: {home} {score['home']} - {score['away']} {away}")
+        st.write(f"**Representative Scoreline**: {home} {score['home']} - {score['away']} {away}")
+        if exact_score:
+            st.write(
+                f"**Most Likely Exact Score**: {home} {exact_score.get('home', '-')} - {exact_score.get('away', '-')} {away}"
+                f" ({float(exact_score.get('probability', 0.0)):.1%})"
+            )
         st.write(f"**Win Probabilities**: {home} ({probs['home_win']:.1%}) | Draw ({probs['draw']:.1%}) | {away} ({probs['away_win']:.1%})")
         st.write(f"**If Knockout: Advance Odds**: {home} ({home_advance:.1%}) | {away} ({away_advance:.1%})")
+        if advancement_method == "penalties":
+            st.write("**Projected Advancement Route**: Penalties after a likely draw path")
         st.write(f"**Confidence**: {prediction['confidence']['label']} ({prediction['confidence']['overall']}/100)")
         st.caption(
-            "Interpretation: the scoreline above is one representative result. Win odds, advance odds, and stage-reach rates are stronger signals because they aggregate the full probability distribution."
+            "Interpretation: the representative scoreline is aligned with the most likely outcome direction. The exact-score value is the single highest-probability exact score from the full score distribution. Win odds, advance odds, and stage-reach rates remain the stronger signals."
         )
         
         st.markdown("""
@@ -1267,6 +1296,8 @@ def show_snapshot_match_analysis_modal(home: str, away: str, snapshot_id: str, m
             prediction = payload.get("prediction_details", {})
             score_home = payload.get("predicted_home_goals", "-")
             score_away = payload.get("predicted_away_goals", "-")
+            exact_score = prediction.get("most_likely_exact_score", {})
+            advancement_method = prediction.get("advancement_method", "")
             probs = {
                 "home_win": payload.get("home_win_probability", 0.0),
                 "draw": payload.get("draw_probability", 0.0),
@@ -1279,18 +1310,27 @@ def show_snapshot_match_analysis_modal(home: str, away: str, snapshot_id: str, m
             prediction = payload.get("prediction", {})
             score_home = payload.get("score", {}).get("home", "-")
             score_away = payload.get("score", {}).get("away", "-")
+            exact_score = prediction.get("most_likely_exact_score", {})
+            advancement_method = payload.get("advancement_method") or prediction.get("advancement_method", "")
             probs = prediction.get("outcome_probabilities", {})
             advancement = prediction.get("advancement_probabilities", {})
             confidence_label = prediction.get("confidence", {}).get("label", "Unknown")
             confidence_value = prediction.get("confidence", {}).get("overall", 0.0)
 
-        st.write(f"**Most Likely Scoreline**: {home} {score_home} - {score_away} {away}")
+        st.write(f"**Representative Scoreline**: {home} {score_home} - {score_away} {away}")
+        if exact_score:
+            st.write(
+                f"**Most Likely Exact Score**: {home} {exact_score.get('home', '-')} - {exact_score.get('away', '-')} {away}"
+                f" ({float(exact_score.get('probability', 0.0)):.1%})"
+            )
         st.write(f"**Win Probabilities**: {home} ({probs.get('home_win', 0.0):.1%}) | Draw ({probs.get('draw', 0.0):.1%}) | {away} ({probs.get('away_win', 0.0):.1%})")
         if advancement:
             st.write(f"**Advance Odds**: {home} ({advancement.get('home', 0.0):.1%}) | {away} ({advancement.get('away', 0.0):.1%})")
+        if advancement_method == "penalties":
+            st.write("**Projected Advancement Route**: Penalties after a likely draw path")
         st.write(f"**Confidence**: {confidence_label} ({confidence_value}/100)")
         st.caption(
-            "Interpretation: the scoreline above is a representative single outcome saved in this snapshot. Use win odds, advance odds, and stage-reach probabilities for the stronger directional signal."
+            "Interpretation: the representative scoreline is outcome-aligned, while the exact-score value is the peak of the full score distribution saved in this snapshot. Use win odds, advance odds, and stage-reach probabilities for the stronger directional signal."
         )
 
         state_row = snapshot_state.get(match_id or "", {})
@@ -1396,6 +1436,17 @@ def main() -> None:
     except ImportError as exc:  # pragma: no cover - depends on optional package
         raise SystemExit("Streamlit is not installed. Install requirements to use the dashboard.") from exc
 
+    @st.cache_data(show_spinner=False)
+    def _cached_fixture_dates(csv_mtime_ns: int) -> pd.DataFrame:
+        from src.config import RAW_FIXTURES_FILE
+
+        fixtures = pd.read_csv(RAW_FIXTURES_FILE)
+        if "date" not in fixtures.columns or "match_id" not in fixtures.columns:
+            return pd.DataFrame(columns=["match_id", "date"])
+        fixtures = fixtures[["match_id", "date"]].copy()
+        fixtures["date"] = pd.to_datetime(fixtures["date"]).dt.strftime("%b %d, %H:%M")
+        return fixtures
+
     st.set_page_config(page_title="World Cup Prediction Baseline", layout="wide")
     snapshots = list_snapshot_timeline()
     if not snapshots:
@@ -1423,6 +1474,7 @@ def main() -> None:
             ),
         )
         selected_snapshot = _find_snapshot(selected_snapshot_id, snapshots)
+        repair_snapshot_bracket(selected_snapshot_id)
 
     _inject_styles(st, dark_mode=dark_mode)
     if selected_snapshot is not None:
@@ -1437,96 +1489,77 @@ def main() -> None:
                     _refresh_snapshot(selected_snapshot_id)
                 st.rerun()
 
-    overview, standings_tab, predictions_tab, accuracy_tab, compare_tab = st.tabs(
-        ["Overview", "Standings", "Predictions", "Accuracy", "Compare"]
+    overview, predictions_tab, accuracy_tab, compare_tab = st.tabs(
+        ["Overview", "Predictions", "Accuracy", "Compare"],
+        default="Overview",
+        on_change="rerun",
+        key="main_dashboard_tab",
     )
 
-    with overview:
-        _render_overview(st, selected_snapshot_id)
+    if overview.open:
+        with overview:
+            _render_overview(st, selected_snapshot_id, snapshots)
 
-    with standings_tab:
-        st.subheader("Current Group Standings")
-        standings = load_latest_standings(selected_snapshot_id)
-        if standings:
-            for group_id, rows in sorted(standings.items()):
-                st.markdown(f"### Group {group_id}")
-                frame = pd.DataFrame(_sorted_group_rows(rows))
-                frame["Flag"] = frame["team"].apply(_local_flag_b64)
-                frame["Team"] = frame.apply(
-                    lambda row: row['team'] + ("  (QUALIFIED)" if row["qualified"] else ""),
-                    axis=1,
-                )
-                st.dataframe(
-                    frame[["Flag", "Team", "points", "wins", "draws", "losses", "goal_difference", "goals_for", "goals_against", "played"]],
+    if predictions_tab.open:
+        with predictions_tab:
+            st.subheader("Match Predictions")
+            st.caption("Click a row to view detailed match analysis.")
+            table = probability_table(selected_snapshot_id)
+            if table:
+                frame = pd.DataFrame(table)
+                if "prediction_details" in frame.columns:
+                    frame = frame.drop(columns=["prediction_details"])
+
+                from src.config import RAW_FIXTURES_FILE
+                if RAW_FIXTURES_FILE.exists():
+                    fixtures = _cached_fixture_dates(RAW_FIXTURES_FILE.stat().st_mtime_ns)
+                    frame = frame.merge(fixtures, on="match_id", how="left")
+
+                clean_frame = frame.copy()
+                frame["home_flag"] = frame["home_team"].apply(_local_flag_b64)
+                frame["away_flag"] = frame["away_team"].apply(_local_flag_b64)
+
+                ordered_cols = []
+                if "date" in frame.columns:
+                    ordered_cols.append("date")
+                ordered_cols.extend(["home_flag", "home_team", "away_flag", "away_team"])
+
+                for c in frame.columns:
+                    if c not in ordered_cols and c not in ["home_flag", "away_flag"]:
+                        ordered_cols.append(c)
+
+                event = st.dataframe(
+                    frame[ordered_cols],
                     use_container_width=True,
                     hide_index=True,
-                    column_config={"Flag": st.column_config.ImageColumn(width="small")}
+                    on_select="rerun",
+                    selection_mode="single-row",
+                    column_config={
+                        "date": "Date",
+                        "home_flag": st.column_config.ImageColumn("Home Flag", width="small"),
+                        "away_flag": st.column_config.ImageColumn("Away Flag", width="small"),
+                        "home_team": "Home Team",
+                        "away_team": "Away Team",
+                    },
                 )
-        else:
-            st.info("No standings snapshot is available yet.")
 
-    with predictions_tab:
-        st.subheader("Match Predictions")
-        st.caption("Click a row to view detailed match analysis.")
-        table = probability_table(selected_snapshot_id)
-        if table:
-            frame = pd.DataFrame(table)
-            if "prediction_details" in frame.columns:
-                frame = frame.drop(columns=["prediction_details"])
-            
-            from src.config import RAW_FIXTURES_FILE
-            if RAW_FIXTURES_FILE.exists():
-                fixtures = pd.read_csv(RAW_FIXTURES_FILE)
-                if "date" in fixtures.columns and "match_id" in fixtures.columns:
-                    frame = frame.merge(fixtures[["match_id", "date"]], on="match_id", how="left")
-                    frame["date"] = pd.to_datetime(frame["date"]).dt.strftime("%b %d, %H:%M")
-            
-            # Keep original names for the callback before mapping flags
-            clean_frame = frame.copy()
-            
-            frame["home_flag"] = frame["home_team"].apply(_local_flag_b64)
-            frame["away_flag"] = frame["away_team"].apply(_local_flag_b64)
-            
-            ordered_cols = []
-            if "date" in frame.columns:
-                ordered_cols.append("date")
-            ordered_cols.extend(["home_flag", "home_team", "away_flag", "away_team"])
-            
-            for c in frame.columns:
-                if c not in ordered_cols and c not in ["home_flag", "away_flag"]:
-                    ordered_cols.append(c)
-            
-            event = st.dataframe(
-                frame[ordered_cols], 
-                use_container_width=True, 
-                hide_index=True,
-                on_select="rerun",
-                selection_mode="single-row",
-                column_config={
-                    "date": "Date",
-                    "home_flag": st.column_config.ImageColumn("Home Flag", width="small"),
-                    "away_flag": st.column_config.ImageColumn("Away Flag", width="small"),
-                    "home_team": "Home Team",
-                    "away_team": "Away Team"
-                }
-            )
-            
-            if event.selection.rows:
-                selected_idx = event.selection.rows[0]
-                home = clean_frame.iloc[selected_idx]["home_team"]
-                away = clean_frame.iloc[selected_idx]["away_team"]
-                match_id = clean_frame.iloc[selected_idx]["match_id"]
-                
-                show_snapshot_match_analysis_modal(home, away, selected_snapshot_id, match_id)
+                if event.selection.rows:
+                    selected_idx = event.selection.rows[0]
+                    home = clean_frame.iloc[selected_idx]["home_team"]
+                    away = clean_frame.iloc[selected_idx]["away_team"]
+                    match_id = clean_frame.iloc[selected_idx]["match_id"]
+                    show_snapshot_match_analysis_modal(home, away, selected_snapshot_id, match_id)
 
-    with accuracy_tab:
-        st.subheader("Snapshot Accuracy Summary")
-        st.json(accuracy_summary(selected_snapshot_id))
+    if accuracy_tab.open:
+        with accuracy_tab:
+            st.subheader("Snapshot Accuracy Summary")
+            st.json(accuracy_summary(selected_snapshot_id))
 
-    with compare_tab:
-        st.write("Selected snapshot metadata")
-        if selected_snapshot is not None:
-            st.json(selected_snapshot)
+    if compare_tab.open:
+        with compare_tab:
+            st.write("Selected snapshot metadata")
+            if selected_snapshot is not None:
+                st.json(selected_snapshot)
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from math import exp, factorial
 from typing import Any
 
 import numpy as np
@@ -55,6 +56,89 @@ KNOCKOUT_STAGE_LAYOUT = [
     ("third_place", 1, [("THIRD-1", THIRD_PLACE_MATCH_NUMBER, "third_place", None, None)]),
     ("final", 1, [("FINAL-1", FINAL_MATCH_NUMBER, "final", None, None)]),
 ]
+
+
+def _poisson_pmf(lam: float, goals: int) -> float:
+    return exp(-lam) * (lam**goals) / factorial(goals)
+
+
+def _conditional_scoreline_from_expected_goals(expected_goals: dict[str, float], outcome: str, max_goals: int = 6) -> dict[str, int]:
+    """Return the most likely exact scoreline conditional on one outcome class."""
+
+    best_score: tuple[int, int] | None = None
+    best_probability = -1.0
+    fallback_score = (0, 0)
+    fallback_probability = -1.0
+
+    for home_goals in range(max_goals + 1):
+        for away_goals in range(max_goals + 1):
+            probability = _poisson_pmf(expected_goals["home"], home_goals) * _poisson_pmf(expected_goals["away"], away_goals)
+            if probability > fallback_probability:
+                fallback_probability = probability
+                fallback_score = (home_goals, away_goals)
+            matches_outcome = (
+                (outcome == "home_win" and home_goals > away_goals)
+                or (outcome == "draw" and home_goals == away_goals)
+                or (outcome == "away_win" and away_goals > home_goals)
+            )
+            if matches_outcome and probability > best_probability:
+                best_probability = probability
+                best_score = (home_goals, away_goals)
+
+    score = best_score or fallback_score
+    return {"home": score[0], "away": score[1]}
+
+
+def _projected_outcome_for_winner(match: dict[str, Any]) -> str | None:
+    """Infer the intended displayed outcome from the saved winner/path."""
+
+    winner = match.get("winner")
+    home_team = match.get("home_team")
+    away_team = match.get("away_team")
+    advancement_method = match.get("advancement_method") or (match.get("prediction") or {}).get("advancement_method")
+
+    if advancement_method == "penalties":
+        return "draw"
+    if winner == home_team:
+        return "home_win"
+    if winner == away_team:
+        return "away_win"
+    return None
+
+
+def align_projected_match_score(match: dict[str, Any]) -> dict[str, Any]:
+    """Realign projected knockout scorelines so they support the saved winner signal."""
+
+    if match.get("result_source") == "resolved":
+        return match
+
+    prediction = match.get("prediction") or {}
+    expected_goals = prediction.get("expected_goals")
+    outcome = _projected_outcome_for_winner(match)
+    if not isinstance(expected_goals, dict) or outcome is None:
+        return match
+
+    aligned_score = _conditional_scoreline_from_expected_goals(expected_goals, outcome)
+    score = match.get("score") or {}
+    score_needs_update = (
+        score.get("home") != aligned_score["home"]
+        or score.get("away") != aligned_score["away"]
+    )
+
+    prediction_score = prediction.get("predicted_score") or {}
+    prediction_needs_update = (
+        prediction_score.get("home") != aligned_score["home"]
+        or prediction_score.get("away") != aligned_score["away"]
+    )
+
+    if not score_needs_update and not prediction_needs_update:
+        return match
+
+    aligned_match = {**match, "score": aligned_score}
+    if prediction:
+        aligned_prediction = {**prediction, "predicted_score": aligned_score}
+        aligned_match["prediction"] = aligned_prediction
+    return aligned_match
 
 
 def all_knockout_match_templates() -> list[dict[str, str]]:
@@ -196,6 +280,7 @@ def _project_knockout_match(model: EnsembleModel, home_team: str, away_team: str
 
     prediction = model.predict_match(home_team, away_team, match_id=match_id)
     probs = prediction["outcome_probabilities"]
+    conditional_scoreline = getattr(model, "_conditional_scoreline", _conditional_scoreline_from_expected_goals)
     penalty_home = penalty_home_probability(
         prediction["features"]["home_penalty_win_rate"],
         prediction["features"]["away_penalty_win_rate"],
@@ -205,6 +290,24 @@ def _project_knockout_match(model: EnsembleModel, home_team: str, away_team: str
     away_advance = probs["away_win"] + probs["draw"] * (1.0 - penalty_home)
     winner = home_team if home_advance >= away_advance else away_team
     loser = away_team if winner == home_team else home_team
+    if winner == home_team:
+        regulation_contribution = probs["home_win"]
+        penalty_contribution = probs["draw"] * penalty_home
+        if penalty_contribution > regulation_contribution:
+            projected_score = conditional_scoreline(prediction["expected_goals"], "draw")
+            advancement_method = "penalties"
+        else:
+            projected_score = conditional_scoreline(prediction["expected_goals"], "home_win")
+            advancement_method = "regulation"
+    else:
+        regulation_contribution = probs["away_win"]
+        penalty_contribution = probs["draw"] * (1.0 - penalty_home)
+        if penalty_contribution > regulation_contribution:
+            projected_score = conditional_scoreline(prediction["expected_goals"], "draw")
+            advancement_method = "penalties"
+        else:
+            projected_score = conditional_scoreline(prediction["expected_goals"], "away_win")
+            advancement_method = "regulation"
 
     projected_prediction = {
         **prediction,
@@ -212,21 +315,23 @@ def _project_knockout_match(model: EnsembleModel, home_team: str, away_team: str
             "home": home_advance,
             "away": away_advance,
         },
+        "advancement_method": advancement_method,
     }
-    predicted_score = prediction.get("predicted_score", {})
-    return {
+    match = {
         "match_id": match_id,
         "home_team": home_team,
         "away_team": away_team,
         "winner": winner,
         "loser": loser,
         "score": {
-            "home": predicted_score.get("home", "-"),
-            "away": predicted_score.get("away", "-"),
+            "home": projected_score.get("home", "-"),
+            "away": projected_score.get("away", "-"),
         },
         "prediction": projected_prediction,
+        "advancement_method": advancement_method,
         "result_source": "projected",
     }
+    return align_projected_match_score(match)
 
 
 def _play_round(

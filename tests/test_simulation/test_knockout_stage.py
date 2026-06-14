@@ -77,7 +77,8 @@ def test_knockout_bracket_uses_advancement_projection(monkeypatch) -> None:
 
     m78 = next(match for match in result["bracket"]["round_of_32"] if match["annex_c"] == "M78")
     assert m78["winner"] == "France"
-    assert m78["score"] == {"home": 1, "away": 2}
+    assert m78["score"] == {"home": 0, "away": 1}
+    assert m78["advancement_method"] == "regulation"
     assert m78["prediction"]["advancement_probabilities"]["away"] > 0.7
 
 
@@ -117,3 +118,57 @@ def test_knockout_bracket_respects_resolved_results(monkeypatch) -> None:
     assert locked_match["winner"] == "Home"
     assert locked_match["score"] == {"home": 1, "away": 0}
     assert locked_match["result_source"] == "resolved"
+
+
+def test_knockout_projection_adjusts_score_to_match_advancement_signal(monkeypatch) -> None:
+    class MismatchProjectionModel:
+        def predict_match(self, home_team: str, away_team: str, match_id: str | None = None) -> dict[str, object]:
+            return {
+                "match_id": match_id,
+                "home_team": home_team,
+                "away_team": away_team,
+                "features": {
+                    "elo_diff": 20.0,
+                    "home_penalty_win_rate": 0.9,
+                    "away_penalty_win_rate": 0.1,
+                },
+                "outcome_probabilities": {"home_win": 0.2, "draw": 0.5, "away_win": 0.3},
+                "predicted_score": {"home": 1, "away": 2},
+                "most_likely_exact_score": {"home": 1, "away": 1, "probability": 0.18},
+                "confidence": {"overall": 62.0, "label": "Moderate"},
+                "expected_goals": {"home": 1.2, "away": 1.1},
+                "contextual_factors": {},
+            }
+
+        def _conditional_scoreline(self, expected_goals: dict[str, float], outcome: str) -> dict[str, int]:
+            mapping = {
+                "home_win": {"home": 1, "away": 0},
+                "draw": {"home": 1, "away": 1},
+                "away_win": {"home": 0, "away": 1},
+            }
+            return mapping[outcome]
+
+    pairings = []
+    for index in range(1, 17):
+        pairings.append(
+            {
+                "match_id": f"R32-{index}",
+                "annex_c": f"M{72 + index}",
+                "home_team": f"Home {index}",
+                "away_team": f"Away {index}",
+                "home_path": f"slot{index}A",
+                "away_path": f"slot{index}B",
+            }
+        )
+
+    monkeypatch.setattr(
+        "src.simulation.knockout_stage.build_round_of_32",
+        lambda _group_rankings: (pairings, []),
+    )
+
+    result = simulate_knockout_stage(MismatchProjectionModel(), group_rankings={}, iterations=2, seed=42)
+    projected_match = next(match for match in result["bracket"]["round_of_32"] if match["match_id"] == "R32-1")
+
+    assert projected_match["winner"] == "Home 1"
+    assert projected_match["score"] == {"home": 1, "away": 1}
+    assert projected_match["advancement_method"] == "penalties"

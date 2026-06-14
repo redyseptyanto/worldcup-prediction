@@ -1,133 +1,246 @@
-# World Cup Prediction Baseline
+# World Cup Prediction
 
-This repository now contains a working first implementation of the World Cup prediction project described in the original planning docs.
+Local-first 2026 FIFA World Cup prediction pipeline with:
 
-The current build is a local-first baseline:
+- real historical international results
+- multi-source squad and context features
+- a five-model ensemble
+- full 48-team tournament simulation
+- snapshot-based dashboard views
+- adaptive result ingest for forward-only tournament updates
 
-- It downloads and caches a real historical international results dataset.
-- It builds match features from historical results plus multi-source squad, injury, travel, rest, weather, manager, tactical, and macro data.
-- It trains a four-part ensemble:
-  - Poisson score model
-  - Gradient boosting outcome model
-  - Random forest outcome model
-  - Elo outcome model
-- It simulates the current 2026 World Cup structure with 12 groups of 4, best third-placed qualification, and a full round of 32 bracket.
-- It supports result ingest, snapshots, comparison, rollback, and a FastAPI surface.
+The repo is built around two ideas:
 
-The implementation is intentionally smaller than the original vision. It is honest, runnable, and designed to be extended.
+1. match-level predictions should combine multiple signals, not a single model
+2. dashboard views should load from saved snapshots so later updates do not silently rewrite earlier tournament states
 
-## Current Scope
+## What The Project Does
 
-- Cached real historical data plus the current 2026 World Cup group-stage fixture book
-- File-backed state store in `output/state/`
-- Snapshot history in `output/snapshots/`
-- Prediction ledger in `output/prediction_ledger.csv`
-- Optional FastAPI and Streamlit interfaces
+- Collects raw match, ranking, squad, injury, weather, travel, and macro data.
+- Builds training and team-level features for the 2026 World Cup field.
+- Trains a weighted ensemble for win/draw/loss probabilities.
+- Uses Poisson-style goal distributions for representative scorelines and exact-score peaks.
+- Simulates the 12-group, best-third-place, round-of-32 tournament format.
+- Saves snapshot artifacts under `output/snapshots/` for dashboard playback and comparison.
+- Supports adaptive result ingest so completed matches lock in and only future rounds change.
 
-## Not Implemented Yet
+## Models Used
 
-- Live scraping from public football sources
-- Real PostgreSQL persistence
-- Airflow DAG orchestration
-- Production-grade dashboard visual design
+The current ensemble has five components in [`src/models/ensemble.py`](src/models/ensemble.py).
 
-## Project Structure
+1. `Poisson` at 28%
+   Estimates goal rates and supplies the match score distribution used for representative scorelines and most-likely exact scores.
+2. `Boosted` at 21%
+   Gradient-boosted outcome model on engineered match-difference features.
+3. `Random Forest` at 17%
+   Nonlinear outcome model that adds a different tree-based view of the same feature set.
+4. `Elo` at 14%
+   Rating-based outcome model anchored in historical strength.
+5. `xG` at 20%
+   Outcome model driven by xG-derived team features such as `xg_for_avg`, `xg_against_avg`, and over/under-performance.
+
+Current weights live in [`src/utils/constants.py`](src/utils/constants.py).
+
+After the base ensemble is combined, the project applies a contextual adjustment layer for:
+
+- squad value and ratings
+- player availability and injury load
+- manager continuity and tactical balance
+- rest days and travel fatigue
+- weather
+- macro-strength proxies
+
+## Data Inputs
+
+The implementation currently uses:
+
+- real historical scores from the international results dataset
+- internally generated ranking and Elo histories
+- squad and player context from SOFIFA and Transfermarkt-derived files
+- fixture weather context
+- macro indicators from World Bank data
+- real xG coverage merged from:
+  - StatsBomb Open Data
+  - archived FiveThirtyEight international SPI xG matches
+
+The xG merge and source audit are documented in [`docs/xg_source_audit.md`](docs/xg_source_audit.md).
+
+The broader data flow is documented in [`docs/data_lineage.md`](docs/data_lineage.md).
+
+## Tournament Simulation
+
+The simulation layer does two different jobs:
+
+- `Monte Carlo stage reach / title odds`
+  Used for champion probabilities and notebook analysis such as "probability to reach each stage".
+- `Deterministic bracket projection`
+  Used for the dashboard bracket, where each knockout match advances the team with the stronger advancement signal.
+
+Knockout scorelines are now aligned with the saved winner signal, so the displayed score supports the projected path instead of contradicting it.
+
+Stage-reach analysis lives in:
+
+- [`notebooks/stage_reach_probabilities.ipynb`](notebooks/stage_reach_probabilities.ipynb)
+- [`src/simulation/stage_reach.py`](src/simulation/stage_reach.py)
+
+## Snapshots And Adaptive Flow
+
+Snapshots are stored in `output/snapshots/<snapshot_id>/` and power the dashboard.
+
+Each snapshot contains saved copies of:
+
+- `predictions.json`
+- `bracket_data.json`
+- `standings.json`
+- `team_features.json`
+- `rosters.json`
+- `state.json`
+- `snapshot.json`
+
+Practical behavior:
+
+- dashboard views load from snapshot files, not live recomputation in the browser
+- completed matches are locked into state
+- future rounds are re-simulated forward from the locked state
+- snapshots can still be refreshed if model artifacts change during experimentation
+
+Core snapshot orchestration lives in:
+
+- [`src/adaptive/engine.py`](src/adaptive/engine.py)
+- [`src/adaptive/snapshotter.py`](src/adaptive/snapshotter.py)
+
+## Dashboard
+
+The Streamlit dashboard currently includes:
+
+- overview with group tables and knockout bracket
+- snapshot selector
+- prediction table with match analysis modal
+- snapshot accuracy summary
+- compare tab for snapshot metadata
+
+Example screenshots from the current implementation:
+
+### Group Overview
+
+![Predicted group overview](docs/predicted_groups.png)
+
+### Knockout Bracket
+
+![Predicted knockout bracket](docs/predicted_knockout.png)
+
+## Repo Layout
 
 ```text
 worldcup-prediction/
 |- src/
-|  |- config.py
+|  |- adaptive/
+|  |- api/
 |  |- data/
 |  |- features/
 |  |- models/
-|  |- simulation/
-|  |- adaptive/
-|  |- api/
 |  |- scheduler/
+|  |- simulation/
 |  `- visualization/
 |- data/
-|  |- raw/
+|  |- external/
 |  |- processed/
-|  `- external/
-|- tests/
-|- AGENT.md
-|- PRD.md
-|- Makefile
-`- requirements.txt
+|  `- raw/
+|- docs/
+|- notebooks/
+|- output/
+`- tests/
 ```
 
-## Quick Start
+## How To Run
 
-```bash
+### 1. Set up the environment
+
+Windows:
+
+```powershell
 python -m venv .venv
-.venv\Scripts\activate
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-python -m src.data.collector --all --refresh
-python -m src.data.loaders --init-db
-pytest tests/
 ```
 
-## Main Commands
+### 2. Collect raw data
+
+```powershell
+.\.venv\Scripts\python.exe -m src.data.collector --all --refresh
+```
+
+### 3. Build features
+
+```powershell
+.\.venv\Scripts\python.exe -m src.features.build_features
+```
+
+### 4. Train the ensemble
+
+```powershell
+.\.venv\Scripts\python.exe -m src.models.train --all
+```
+
+### 5. Run a simulation
+
+```powershell
+.\.venv\Scripts\python.exe -m src.simulation.tournament --iterations 500
+```
+
+### 6. Launch the dashboard
+
+Use the repo environment explicitly:
+
+```powershell
+.\.venv\Scripts\python.exe -m streamlit run src/visualization/dashboard.py
+```
+
+The dashboard will auto-create `000_baseline` if no snapshot exists yet.
+
+### 7. Launch the API
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+## Makefile Shortcuts
+
+If `make` is available in your shell:
 
 ```bash
 make collect-data
 make engineer-features
 make train-models
-make simulate
-make predict
-make serve-api
+make simulate ITERATIONS=500
 make serve-dashboard
-make ingest-result match_id=GRP-A-M1 score=2-1
-make tournament-status
-make scheduler-run-now
+make serve-api
 make test
 ```
 
-If `make` is unavailable on your machine, the equivalent Python modules are:
+## Adaptive Commands
 
-```bash
-python -m src.data.collector --all --refresh
-python -m src.features.build_features
-python -m src.models.train --all
-python -m src.simulation.tournament --iterations 500
-python -m src.scheduler.daily_run
-uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
-streamlit run src/visualization/dashboard.py
+Ingest one completed result:
+
+```powershell
+make ingest-result match_id=GRP-A-M1 score=2-1
 ```
 
-## Adaptive Flow
+Compare snapshots:
 
-The adaptive engine is file-backed and works like this:
-
-1. Initialize state from fixtures.
-2. Run a baseline snapshot.
-3. Ingest a resolved result.
-4. Re-simulate the remaining tournament.
-5. Save an immutable snapshot.
-6. Compare or roll back if needed.
-
-Example:
-
-```bash
-make ingest-result match_id=GRP-A-M1 score=2-1
+```powershell
 make compare-snapshots from=000_baseline to=001_after_grp-a-m1
+```
+
+Rollback to an earlier state branch:
+
+```powershell
 make rollback-to snapshot=000_baseline
 ```
 
-## How is a prediction made?
-
-The prediction is powered by an Adaptive Ensemble Model that combines multiple machine learning techniques (XGBoost, Random Forest, Poisson Regression, and Elo Ratings) to simulate match outcomes.
-
-The most heavily weighted parameters affecting the match result are:
-1. **Elo Rating & Form**: A historical measure of a team's true strength and recent momentum based on past results and opponent difficulty.
-2. **Squad Quality & Value**: The combined FIFA attributes and Transfermarkt valuations of the official 26-man roster, reflecting the raw talent and depth of the team.
-3. **Head-to-Head History**: Past performance between these specific nations.
-4. **Tactical & Injury Factors**: Current injury loads, international experience (caps), and tactical balance.
-5. **Tournament Context**: The stage of the tournament (e.g., knockout matches are typically tighter and lower-scoring than group stage matches).
-
 ## API Endpoints
 
-The implemented API currently exposes:
+Current FastAPI routes in [`src/api/routes.py`](src/api/routes.py):
 
 - `GET /`
 - `POST /predict/match`
@@ -140,30 +253,34 @@ The implemented API currently exposes:
 - `GET /state/matches`
 - `GET /snapshots`
 
-## Testing
+## Tests
 
-The test suite covers:
+Run the test suite with:
 
-- real historical data collection and loading
-- feature artifact creation
-- ensemble probability outputs
-- 2026 group-stage simulation behavior
-- adaptive ingest and snapshot creation
-- API smoke coverage
-- docs consistency checks for key repo claims
-
-Run:
-
-```bash
-pytest tests/
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests -q
 ```
 
-## Next Steps
+Coverage currently focuses on:
 
-The most natural extensions from here are:
+- data collection and loaders
+- feature artifact creation
+- ensemble output behavior
+- knockout and stage-reach simulation
+- adaptive snapshot flow
+- API smoke checks
 
-1. Move state and ledger storage from files to PostgreSQL.
-2. Upgrade the dashboard and reporting layer.
-3. Add live result fetching with rate-limited source adapters.
-4. Extend the knockout-stage travel and weather context beyond the group phase.
-5. Improve calibration and post-tournament evaluation reporting.
+## Related Docs
+
+- [`PRD.md`](PRD.md)
+- [`docs/data_lineage.md`](docs/data_lineage.md)
+- [`docs/example_argentina_vs_uruguay_r32.md`](docs/example_argentina_vs_uruguay_r32.md)
+- [`docs/xg_source_audit.md`](docs/xg_source_audit.md)
+
+## Current Limitations
+
+- the dashboard is still local-first, not production deployed
+- live source freshness varies by source type and refresh schedule
+- snapshot storage is file-backed rather than database-backed
+- stage-reach and bracket outputs are complementary views, not the same object
+- exact scorelines remain illustrative; probabilities are the stronger signal

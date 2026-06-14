@@ -50,3 +50,12 @@ def test_representative_scoreline_matches_dominant_outcome() -> None:
     )
 
     assert score == {"home": 2, "away": 1}
+
+
+def test_most_likely_exact_scoreline_uses_full_score_distribution() -> None:
+    model = load_or_train_ensemble(force=True)
+    score = model._most_likely_exact_scoreline({"home": 1.633, "away": 1.536})  # noqa: SLF001 - targeted regression for exact-score display.
+
+    assert score["home"] == 1
+    assert score["away"] == 1
+    assert score["probability"] > 0.10
