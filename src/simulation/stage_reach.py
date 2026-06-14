@@ -36,11 +36,24 @@ STAGE_COLUMNS = [
     "champion",
 ]
 
+OPPONENT_STAGE_SPECS = [
+    ("round_of_32", "Round of 32", "reach_round_of_32"),
+    ("round_of_16", "Round of 16", "reach_round_of_16"),
+    ("quarter_finals", "Quarter-finals", "reach_quarter_finals"),
+    ("semi_finals", "Semi-finals", "reach_semi_finals"),
+    ("final", "Final", "reach_final"),
+]
+
 
 @dataclass(frozen=True)
 class StageReachSimulation:
     stage_probabilities: pd.DataFrame
     round_of_32_opponents: pd.DataFrame
+    round_of_16_opponents: pd.DataFrame
+    quarter_final_opponents: pd.DataFrame
+    semi_final_opponents: pd.DataFrame
+    final_opponents: pd.DataFrame
+    opponents_by_stage: dict[str, pd.DataFrame]
     best_third_group_mix: pd.DataFrame
 
 
@@ -116,7 +129,10 @@ def estimate_stage_reach_probabilities(
     rng = np.random.default_rng(seed)
     teams = sorted(set(fixtures["home_team"]) | set(fixtures["away_team"]))
     stage_counts: dict[str, Counter[str]] = defaultdict(Counter)
-    round_of_32_opponent_counts: dict[str, Counter[str]] = defaultdict(Counter)
+    opponent_counts_by_stage: dict[str, dict[str, Counter[str]]] = {
+        stage_key: defaultdict(Counter)
+        for stage_key, _, _ in OPPONENT_STAGE_SPECS
+    }
     best_third_group_counts: Counter[str] = Counter()
 
     for _ in range(iterations):
@@ -135,8 +151,8 @@ def estimate_stage_reach_probabilities(
             away_team = match["away_team"]
             stage_counts[home_team]["reach_round_of_32"] += 1
             stage_counts[away_team]["reach_round_of_32"] += 1
-            round_of_32_opponent_counts[home_team][away_team] += 1
-            round_of_32_opponent_counts[away_team][home_team] += 1
+            opponent_counts_by_stage["round_of_32"][home_team][away_team] += 1
+            opponent_counts_by_stage["round_of_32"][away_team][home_team] += 1
 
         for stage_name, pairings in [
             ("reach_round_of_16", simulation["round_of_16_pairings"]),
@@ -146,6 +162,18 @@ def estimate_stage_reach_probabilities(
             for match in pairings:
                 stage_counts[match["home_team"]][stage_name] += 1
                 stage_counts[match["away_team"]][stage_name] += 1
+
+        for stage_key, pairings in [
+            ("round_of_16", simulation["round_of_16_pairings"]),
+            ("quarter_finals", simulation["quarter_final_pairings"]),
+            ("semi_finals", simulation["semi_final_pairings"]),
+            ("final", simulation["final_pairing"]),
+        ]:
+            for match in pairings:
+                home_team = match["home_team"]
+                away_team = match["away_team"]
+                opponent_counts_by_stage[stage_key][home_team][away_team] += 1
+                opponent_counts_by_stage[stage_key][away_team][home_team] += 1
 
         third_place_match = simulation["third_place_pairing"][0]
         stage_counts[third_place_match["home_team"]]["reach_third_place"] += 1
@@ -168,10 +196,13 @@ def estimate_stage_reach_probabilities(
         ascending=False,
     ).reset_index(drop=True)
 
-    round_of_32_opponents = pd.DataFrame(0.0, index=teams, columns=teams)
-    for team, opponent_counter in round_of_32_opponent_counts.items():
-        for opponent, count in opponent_counter.items():
-            round_of_32_opponents.loc[team, opponent] = count / iterations
+    opponent_matrices: dict[str, pd.DataFrame] = {}
+    for stage_key, _, _ in OPPONENT_STAGE_SPECS:
+        matrix = pd.DataFrame(0.0, index=teams, columns=teams)
+        for team, opponent_counter in opponent_counts_by_stage[stage_key].items():
+            for opponent, count in opponent_counter.items():
+                matrix.loc[team, opponent] = count / iterations
+        opponent_matrices[stage_key] = matrix
 
     best_third_group_mix = pd.DataFrame(
         {
@@ -185,7 +216,12 @@ def estimate_stage_reach_probabilities(
 
     return StageReachSimulation(
         stage_probabilities=stage_probabilities,
-        round_of_32_opponents=round_of_32_opponents,
+        round_of_32_opponents=opponent_matrices["round_of_32"],
+        round_of_16_opponents=opponent_matrices["round_of_16"],
+        quarter_final_opponents=opponent_matrices["quarter_finals"],
+        semi_final_opponents=opponent_matrices["semi_finals"],
+        final_opponents=opponent_matrices["final"],
+        opponents_by_stage=opponent_matrices,
         best_third_group_mix=best_third_group_mix,
     )
 
@@ -206,6 +242,17 @@ def build_uncertain_round_of_32_paths(
     )
 
 
+def show_stage_opponents(
+    opponent_matrix: pd.DataFrame,
+    team: str,
+    top_n: int = 16,
+) -> pd.Series:
+    """Return the most likely opponents for one team at a given stage."""
+
+    distribution = opponent_matrix.loc[team]
+    return distribution[distribution > 0].sort_values(ascending=False).head(top_n)
+
+
 def show_round_of_32_opponents(
     round_of_32_opponents: pd.DataFrame,
     team: str,
@@ -213,5 +260,50 @@ def show_round_of_32_opponents(
 ) -> pd.Series:
     """Return the most likely round-of-32 opponents for one team."""
 
-    distribution = round_of_32_opponents.loc[team]
-    return distribution[distribution > 0].sort_values(ascending=False).head(top_n)
+    return show_stage_opponents(round_of_32_opponents, team, top_n=top_n)
+
+
+def show_round_of_16_opponents(
+    round_of_16_opponents: pd.DataFrame,
+    team: str,
+    top_n: int = 16,
+) -> pd.Series:
+    """Return the most likely round-of-16 opponents for one team."""
+
+    return show_stage_opponents(round_of_16_opponents, team, top_n=top_n)
+
+
+def build_projected_opponents_table(
+    simulation: StageReachSimulation,
+    team: str,
+    top_n_per_stage: int = 8,
+) -> pd.DataFrame:
+    """Return a formatted table of projected opponents from the round of 32 through the final."""
+
+    stage_lookup = simulation.stage_probabilities.set_index("team")
+    if team not in stage_lookup.index:
+        raise KeyError(f"Unknown team: {team}")
+
+    rows: list[dict[str, object]] = []
+    for stage_key, stage_label, reach_column in OPPONENT_STAGE_SPECS:
+        matrix = simulation.opponents_by_stage[stage_key]
+        distribution = matrix.loc[team]
+        distribution = distribution[distribution > 0].sort_values(ascending=False).head(top_n_per_stage)
+        if distribution.empty:
+            continue
+
+        reach_probability = float(stage_lookup.loc[team, reach_column])
+        for opponent, probability in distribution.items():
+            conditional_probability = probability / reach_probability if reach_probability > 0 else 0.0
+            rows.append(
+                {
+                    "stage": stage_label,
+                    "team": team,
+                    "reach_probability": reach_probability,
+                    "opponent": opponent,
+                    "path_probability": float(probability),
+                    "conditional_opponent_probability": conditional_probability,
+                }
+            )
+
+    return pd.DataFrame(rows)

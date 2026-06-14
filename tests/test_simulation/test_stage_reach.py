@@ -1,6 +1,6 @@
 import pandas as pd
 
-from src.simulation.stage_reach import estimate_stage_reach_probabilities
+from src.simulation.stage_reach import build_projected_opponents_table, estimate_stage_reach_probabilities
 
 
 def test_stage_reach_aggregation_uses_simulated_paths(monkeypatch) -> None:
@@ -39,4 +39,12 @@ def test_stage_reach_aggregation_uses_simulated_paths(monkeypatch) -> None:
     assert stage_probabilities.loc["A3", "best_third"] == 1.0
     assert stage_probabilities.loc["A1", "champion"] == 1.0
     assert result.round_of_32_opponents.loc["A1", "B3"] == 1.0
+    assert result.round_of_16_opponents.loc["A1", "B1"] == 1.0
+    assert result.quarter_final_opponents.loc["A1", "A2"] == 1.0
+    assert result.semi_final_opponents.loc["A1", "B2"] == 1.0
+    assert result.final_opponents.loc["A1", "B1"] == 1.0
     assert result.best_third_group_mix.set_index("group").loc["A", "share_of_best_third_slots"] == 0.125
+
+    table = build_projected_opponents_table(result, "A1", top_n_per_stage=4)
+    assert set(table["stage"]) == {"Round of 32", "Round of 16", "Quarter-finals", "Semi-finals", "Final"}
+    assert float(table.loc[table["stage"] == "Final", "path_probability"].iloc[0]) == 1.0

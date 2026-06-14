@@ -52,22 +52,59 @@ def _apply_result(standings: dict[str, dict[str, float]], home_team: str, away_t
         away["draws"] += 1
 
 
+def _apply_expected_signal(
+    standings: dict[str, dict[str, float]],
+    home_team: str,
+    away_team: str,
+    outcome_probabilities: dict[str, float],
+    expected_goals: dict[str, float],
+) -> None:
+    """Apply a probability-weighted match signal for deterministic group projection."""
+
+    home = standings[home_team]
+    away = standings[away_team]
+    home["played"] += 1
+    away["played"] += 1
+    home["goals_for"] += float(expected_goals["home"])
+    home["goals_against"] += float(expected_goals["away"])
+    away["goals_for"] += float(expected_goals["away"])
+    away["goals_against"] += float(expected_goals["home"])
+    home["goal_difference"] += float(expected_goals["home"]) - float(expected_goals["away"])
+    away["goal_difference"] += float(expected_goals["away"]) - float(expected_goals["home"])
+
+    home_win = float(outcome_probabilities["home_win"])
+    draw = float(outcome_probabilities["draw"])
+    away_win = float(outcome_probabilities["away_win"])
+    home["points"] += 3.0 * home_win + draw
+    away["points"] += 3.0 * away_win + draw
+    home["wins"] += home_win
+    away["wins"] += away_win
+    home["draws"] += draw
+    away["draws"] += draw
+    home["losses"] += away_win
+    away["losses"] += home_win
+
+
 def rank_group(standings: dict[str, dict[str, float]]) -> list[dict[str, Any]]:
     """Return teams ordered by points, goal difference, and goals scored."""
+
+    def display_value(value: float) -> int | float:
+        rounded = round(float(value), 2)
+        return int(round(rounded)) if abs(rounded - round(rounded)) < 1e-9 else rounded
 
     ranked = []
     for team, metrics in standings.items():
         ranked.append(
             {
                 "team": team,
-                "points": int(metrics["points"]),
-                "wins": int(metrics["wins"]),
-                "draws": int(metrics["draws"]),
-                "losses": int(metrics["losses"]),
-                "goal_difference": int(metrics["goal_difference"]),
-                "goals_for": int(metrics["goals_for"]),
-                "goals_against": int(metrics["goals_against"]),
-                "played": int(metrics["played"]),
+                "points": display_value(metrics["points"]),
+                "wins": display_value(metrics["wins"]),
+                "draws": display_value(metrics["draws"]),
+                "losses": display_value(metrics["losses"]),
+                "goal_difference": display_value(metrics["goal_difference"]),
+                "goals_for": display_value(metrics["goals_for"]),
+                "goals_against": display_value(metrics["goals_against"]),
+                "played": display_value(metrics["played"]),
             }
         )
     return sorted(
@@ -135,7 +172,7 @@ def project_group_matches(
     model: EnsembleModel,
     resolved_results: dict[str, dict[str, int]] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Project one group's fixtures using displayed predicted scorelines."""
+    """Project one group's fixtures using the ensemble's combined probability signal."""
 
     resolved_results = resolved_results or {}
     standings = _empty_standings()
@@ -146,12 +183,19 @@ def project_group_matches(
         if row.match_id in resolved_results:
             home_goals = int(resolved_results[row.match_id]["home_goals"])
             away_goals = int(resolved_results[row.match_id]["away_goals"])
+            _apply_result(standings, row.home_team, row.away_team, home_goals, away_goals)
             source = "resolved"
         else:
             home_goals = int(prediction["predicted_score"]["home"])
             away_goals = int(prediction["predicted_score"]["away"])
-            source = "projected"
-        _apply_result(standings, row.home_team, row.away_team, home_goals, away_goals)
+            _apply_expected_signal(
+                standings,
+                row.home_team,
+                row.away_team,
+                prediction["outcome_probabilities"],
+                prediction["expected_goals"],
+            )
+            source = "signal_projected"
         predictions.append(
             {
                 "match_id": row.match_id,

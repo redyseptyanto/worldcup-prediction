@@ -32,7 +32,7 @@ class StubGroupStageModel:
         return self.predictions[match_id]
 
 
-def test_group_stage_standings_match_projected_scores() -> None:
+def test_group_stage_standings_match_combined_probability_signal() -> None:
     fixtures = pd.DataFrame(
         [
             {"match_id": "G1", "date": "2026-06-01T00:00:00Z", "group": "C", "home_team": "Brazil", "away_team": "Morocco"},
@@ -65,8 +65,7 @@ def test_group_stage_standings_match_projected_scores() -> None:
     group_c = results["standings"]["C"]
 
     assert group_c[0]["team"] == "Brazil"
-    assert group_c[0]["points"] == 7
-    assert (group_c[0]["wins"], group_c[0]["draws"], group_c[0]["losses"]) == (2, 1, 0)
-    assert group_c[1]["team"] == "Morocco"
-    assert (group_c[1]["wins"], group_c[1]["draws"], group_c[1]["losses"]) == (2, 1, 0)
-    assert results["predictions"]["C"][0]["result_source"] == "projected"
+    assert group_c[0]["points"] == 4.2
+    assert (group_c[0]["wins"], group_c[0]["draws"], group_c[0]["losses"]) == (1.1, 0.9, 1)
+    assert group_c[1]["team"] == "Scotland"
+    assert results["predictions"]["C"][0]["result_source"] == "signal_projected"

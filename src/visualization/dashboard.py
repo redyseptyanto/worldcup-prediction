@@ -724,11 +724,11 @@ def _render_match_card(st: Any, round_label: str, match: dict[str, Any]) -> None
             {team_line(match['home_team'], score.get('home', '-'))}
             {team_line(match['away_team'], score.get('away', '-'))}
             <div class="match-meta">
-                Predicted score {prediction.get('predicted_score', {}).get('home', '-')}
+                Most likely scoreline {prediction.get('predicted_score', {}).get('home', '-')}
                 -
                 {prediction.get('predicted_score', {}).get('away', '-')}
                 | confidence {prediction.get('confidence', {}).get('overall', 0):.1f}
-                | top win probability {probability:.1%}
+                | strongest single-match outcome {probability:.1%}
             </div>
         </div>
         """)
@@ -934,6 +934,7 @@ def _render_knockout_bracket(st: Any, bracket: dict[str, Any], champion_odds: di
     full_html = (
         '<div class="knockout-shell">'
         '<div class="knockout-title">Knockout Bracket</div>'
+        '<div class="match-meta">Displayed scorelines are representative single outcomes. Bracket progression and title odds use the full match probabilities and Monte Carlo tournament simulation.</div>'
         '<div class="bracket-scroll">'
         '<div class="bracket-layout">'
         f'<div class="bracket-side bracket-side-left">{left_html}</div>'
@@ -1038,10 +1039,13 @@ def show_match_analysis_modal(home: str, away: str, match_id: str | None = None)
         home_advance = probs["home_win"] + probs["draw"] * penalty_home
         away_advance = probs["away_win"] + probs["draw"] * (1.0 - penalty_home)
         
-        st.write(f"**Predicted Score**: {home} {score['home']} - {score['away']} {away}")
+        st.write(f"**Most Likely Scoreline**: {home} {score['home']} - {score['away']} {away}")
         st.write(f"**Win Probabilities**: {home} ({probs['home_win']:.1%}) | Draw ({probs['draw']:.1%}) | {away} ({probs['away_win']:.1%})")
         st.write(f"**If Knockout: Advance Odds**: {home} ({home_advance:.1%}) | {away} ({away_advance:.1%})")
         st.write(f"**Confidence**: {prediction['confidence']['label']} ({prediction['confidence']['overall']}/100)")
+        st.caption(
+            "Interpretation: the scoreline above is one representative result. Win odds, advance odds, and stage-reach rates are stronger signals because they aggregate the full probability distribution."
+        )
         
         st.markdown("""
         <style>
@@ -1280,11 +1284,14 @@ def show_snapshot_match_analysis_modal(home: str, away: str, snapshot_id: str, m
             confidence_label = prediction.get("confidence", {}).get("label", "Unknown")
             confidence_value = prediction.get("confidence", {}).get("overall", 0.0)
 
-        st.write(f"**Predicted Score**: {home} {score_home} - {score_away} {away}")
+        st.write(f"**Most Likely Scoreline**: {home} {score_home} - {score_away} {away}")
         st.write(f"**Win Probabilities**: {home} ({probs.get('home_win', 0.0):.1%}) | Draw ({probs.get('draw', 0.0):.1%}) | {away} ({probs.get('away_win', 0.0):.1%})")
         if advancement:
             st.write(f"**Advance Odds**: {home} ({advancement.get('home', 0.0):.1%}) | {away} ({advancement.get('away', 0.0):.1%})")
         st.write(f"**Confidence**: {confidence_label} ({confidence_value}/100)")
+        st.caption(
+            "Interpretation: the scoreline above is a representative single outcome saved in this snapshot. Use win odds, advance odds, and stage-reach probabilities for the stronger directional signal."
+        )
 
         state_row = snapshot_state.get(match_id or "", {})
         if state_row.get("state") == "RESOLVED":
