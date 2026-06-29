@@ -46,6 +46,7 @@ make serve-dashboard
 make run-all
 make ingest-result match_id=GRP-A-M1 score=2-1
 make ingest-batch file=path/to/results.csv
+make snapshot-real-groups
 make tournament-status
 make compare-snapshots from=000_baseline to=001_after_grp-a-m1
 make evolution-report
@@ -59,9 +60,11 @@ make clean
 
 ```bash
 python -m src.data.collector --all
+python -m src.data.fifa_official --refresh
 python -m src.features.build_features
 python -m src.models.train --all
 python -m src.simulation.tournament --iterations 500
+python scripts/ingest_group_stage.py
 python -m src.scheduler.daily_run
 uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
 streamlit run src/visualization/dashboard.py
@@ -74,6 +77,7 @@ streamlit run src/visualization/dashboard.py
 - `src/data/collector.py` downloads and caches real historical international results
 - `src/data/collector.py` also caches the current 2026 group-stage field, fixture book, weather proxies, and bracket rules
 - `src/data/loaders.py` loads fixtures, rankings, and historical matches
+- `src/data/fifa_official.py` refreshes official FIFA 2026 standings, best-third qualifiers, and the Round-of-32 bracket into `data/external/`
 - `src/data/preprocessors.py` validates and normalizes CSV inputs
 
 ### Feature Layer
@@ -82,6 +86,7 @@ streamlit run src/visualization/dashboard.py
 - `src/features/team_features.py` computes current team summaries
 - `src/features/player_features.py` joins squad ratings, values, injuries, national-team experience, and tactical composition
 - `src/features/external_features.py` computes macro, travel, weather, and rest context
+- official FIFA standings can be merged into `team_features.json` as tournament-form columns once live tournament files are available
 - `src/features/build_features.py` writes processed artifacts
 
 ### Model Layer
@@ -101,6 +106,7 @@ Note:
 
 - `src/simulation/group_stage.py` supports the 12-group 2026 format and best third-placed ranking
 - `src/simulation/knockout_stage.py` handles the 32-team knockout bracket
+- when all 72 group matches are resolved, `src/simulation/knockout_stage.py` can override projected pairings with the official FIFA Round of 32
 - `src/simulation/tournament.py` produces tournament outputs
 
 ### Adaptive Layer
@@ -120,6 +126,7 @@ Note:
 - optional Streamlit dashboard in `src/visualization/dashboard.py`
   - renders from selected stored snapshots rather than recomputing live views on page load
   - supports refreshing a selected snapshot when the trained model artifacts change during experimentation
+  - can build a post-group comparison snapshot directly from `data/external/real_group_stage_results.csv` while preserving the baseline snapshot
 - scheduler entry point in `src/scheduler/daily_run.py`
 
 ## 5. Coding Rules

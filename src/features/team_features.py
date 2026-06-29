@@ -15,6 +15,7 @@ def compute_team_summary(
     xg_matches: pd.DataFrame | None = None,
     player_factors: pd.DataFrame | None = None,
     macro_factors: pd.DataFrame | None = None,
+    tournament_form_factors: pd.DataFrame | None = None,
     output_teams: set[str] | None = None,
 ) -> pd.DataFrame:
     """Compute current team-level summary metrics from historical matches."""
@@ -128,14 +129,30 @@ def compute_team_summary(
         summary = summary.merge(player_factors, on="team", how="left")
     if macro_factors is not None and not macro_factors.empty:
         summary = summary.merge(macro_factors, on="team", how="left")
-        
+    if tournament_form_factors is not None and not tournament_form_factors.empty:
+        summary = summary.merge(tournament_form_factors, on="team", how="left")
+        summary["official_group"] = summary["official_group"].fillna(summary["group"])
+        for column, default in {
+            "official_group_position": 0.0,
+            "tournament_matches_played": 0.0,
+            "tournament_points_pct": 0.0,
+            "tournament_goal_diff_per_match": 0.0,
+            "tournament_goals_for_per_match": 0.0,
+            "tournament_goals_against_per_match": 0.0,
+            "tournament_wins_per_match": 0.0,
+            "tournament_conduct_score": 0.0,
+            "tournament_qualified": 0.0,
+        }.items():
+            summary[column] = summary[column].fillna(default)
+
     # Merge penalty features
     from src.data.loaders import load_penalties
+
     penalties = load_penalties()
     if not penalties.empty:
         summary = summary.merge(penalties[["team", "penalty_win_rate"]], on="team", how="left")
         summary["penalty_win_rate"] = summary["penalty_win_rate"].fillna(0.5)
     else:
         summary["penalty_win_rate"] = 0.5
-        
+
     return summary

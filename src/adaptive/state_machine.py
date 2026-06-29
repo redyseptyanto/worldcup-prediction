@@ -51,6 +51,8 @@ class MatchStateMachine:
 
     def reset(self, snapshot_state: dict[str, Any] | None = None) -> None:
         if snapshot_state is None:
+            if MATCH_STATE_FILE.exists():
+                MATCH_STATE_FILE.unlink()
             initialize_state_store()
         else:
             save_json(MATCH_STATE_FILE, snapshot_state)

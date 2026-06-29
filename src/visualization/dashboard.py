@@ -56,6 +56,18 @@ def _refresh_snapshot(snapshot_id: str) -> None:
     AdaptiveEngine(iterations=500).refresh_snapshot(snapshot_id)
 
 
+def _build_post_group_snapshot(results_file: Path) -> dict[str, Any]:
+    """Create or refresh the comparison snapshot backed by real group-stage results."""
+
+    from src.adaptive.engine import AdaptiveEngine
+
+    return AdaptiveEngine(iterations=500).build_snapshot_from_results_file(
+        file_path=str(results_file),
+        descriptor="after_group_stage_complete",
+        refresh_official_data=True,
+    )
+
+
 def _snapshot_label(snapshot: dict[str, Any]) -> str:
     model_signature = ((snapshot.get("model_metadata") or {}).get("signature")) or "unknown"
     resolved_count = len(snapshot.get("resolved_matches", []))
@@ -1452,14 +1464,36 @@ def main() -> None:
     if not snapshots:
         _ensure_baseline_snapshot()
         snapshots = list_snapshot_timeline()
-    
-    # Place toggle in the sidebar or at the top of the page. Top of page is fine.
+
+    real_group_results_file = Path("data/external/real_group_stage_results.csv")
+    post_group_snapshot = next((snapshot for snapshot in snapshots if snapshot["descriptor"] == "after_group_stage_complete"), None)
+
     col1, col2 = st.columns([0.7, 0.3])
     with col1:
         st.title("World Cup Prediction Baseline")
         st.caption("Offline demo pipeline with adaptive snapshots.")
     with col2:
         dark_mode = st.toggle("🌙 Dark Mode", value=False)
+
+    if real_group_results_file.exists():
+        action_col1, action_col2 = st.columns([0.72, 0.28])
+        with action_col1:
+            if post_group_snapshot is None:
+                st.info("Real group-stage results are available. Build a second snapshot to compare baseline vs actual-tournament calibration.")
+            else:
+                resolved_count = len(post_group_snapshot.get("resolved_matches", []))
+                st.success(
+                    f"Comparison snapshot `{post_group_snapshot['snapshot_id']}` is available with {resolved_count} resolved matches."
+                )
+        with action_col2:
+            button_label = "Build Post-Group Snapshot" if post_group_snapshot is None else "Rebuild Post-Group Snapshot"
+            if st.button(button_label, use_container_width=True, key="build_post_group_snapshot"):
+                with st.spinner("Building comparison snapshot from real group-stage results..."):
+                    result = _build_post_group_snapshot(real_group_results_file)
+                st.success(
+                    f"Snapshot `{result['snapshot_id']}` is ready. Baseline `{result['baseline_snapshot']}` was preserved for comparison."
+                )
+                st.rerun()
         
     selected_snapshot_id = snapshots[-1]["snapshot_id"] if snapshots else ""
     selected_snapshot = _find_snapshot(selected_snapshot_id, snapshots) if snapshots else None

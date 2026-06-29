@@ -1,0 +1,278 @@
+{
+  "categories": [
+    {
+      "display_top_card": true,
+      "entry_id": "3Rgv7dVRd8KoLclDyX9aQp",
+      "glossary": [
+        {
+          "identifier": "Goals",
+          "value": "Goals refer to the total number of occasions a team or player has successfully placed the ball into the opponent\u2019s net. This metric is used to determine the match outcome."
+        },
+        {
+          "identifier": "Assists",
+          "value": "A player who, regardless of intention, last touches the ball prior to a goal being scored by a team-mate. An assist will be awarded for an intended distribution action regardless of an opposition touch, as long as the intended distribution action arives at the intended destination."
+        },
+        {
+          "identifier": "Attempts At Goal",
+          "value": "Attempts at goal represent the total number of shots (both on target and off target) taken by a team or player, including those that are blocked by defenders or saved by the goalkeeper."
+        },
+        {
+          "identifier": "Attempts On Target",
+          "value": "Attempts at Goal on Target are a subset of total attempts that end within the goal frame, including shots that result in goals or require a save from the goalkeeper to prevent a goal."
+        },
+        {
+          "identifier": "Attempt At Goal Conv. Rate (%)",
+          "value": "The rate at which a player's total  attempts at goal result in goals."
+        },
+        {
+          "identifier": "xG",
+          "value": "A statistical model estimating the likelihood of a given attempt at goal resulting in a goal, based on factors like attempt location, type, assist type, and defensive pressure."
+        },
+        {
+          "identifier": "xG Efficiency (%)",
+          "value": "A measure of finishing efficiency, calculated as Goals divided by Expected Goals (XG), indicating how well a team converts chances relative to the quality of those chances."
+        },
+        {
+          "identifier": "Goals Conceded",
+          "value": "Goals Conceded indicate the total number of goals a team has allowed their opponent to score. "
+        },
+        {
+          "identifier": "Corners",
+          "value": "Corners are a type of set play awarded to an attacking team when the ball fully crosses the goal line, outside the goalposts, after being last touched by a defending player."
+        },
+        {
+          "identifier": "Possession Control",
+          "value": "Possession control shows the percentage of time each team is in possession of the ball, as well as a third state showing when the ball is in contest. The ball is in contest when neither team has it under control."
+        }
+      ],
+      "main_stat": "gct_attack",
+      "stat_keys": [
+        "gct_attack"
+      ],
+      "title": "Attacking"
+    },
+    {
+      "display_top_card": true,
+      "entry_id": "3sOHkqp1VGdbmamtzLZXWf",
+      "glossary": [
+        {
+          "identifier": "Passes",
+          "value": "Passes refer to the deliberate transfer of the ball from one player to another on the same team."
+        },
+        {
+          "identifier": "Passing Accuracy",
+          "value": "Pass Completion Rate is the percentage of successfully completed passes out of the total attempted passes, indicating the accuracy of a player or team's passing.\n"
+        },
+        {
+          "identifier": "Crosses",
+          "value": "Crosses are specific types of distributions delivered from wide areas of the pitch targetting the opponent\u2019s penalty area, typically intended to create scoring opportunities."
+        },
+        {
+          "identifier": "Crossing Accuracy",
+          "value": "Crossing Accuracy is the percentage of successfully completed crosses (those reaching the intended teammate) out of the total attempted crosses."
+        },
+        {
+          "identifier": "Defensive Linebreaks Attempted",
+          "value": "The number of attempted distributions or actions that aim to penetrate the opposition\u2019s defensive line, typically intending to disrupt their team shape or create goal-scoring chances."
+        },
+        {
+          "identifier": "Defensive Linebreaks Acc (%)",
+          "value": "The completion rate of attempted linebreaks against the defensive line."
+        },
+        {
+          "identifier": "Switches of Play Completed",
+          "value": "The number of successful switches of play that reach the intended teammate on the opposite side of the field. The ball must bypass two vertical pitch channels."
+        },
+        {
+          "identifier": "Switches of Play Acc (%)",
+          "value": "The percentage of successful switches of play."
+        }
+      ],
+      "main_stat": "gct_distribution",
+      "stat_keys": [
+        "gct_distribution"
+      ],
+      "title": "Distribution"
+    },
+    {
+      "display_top_card": true,
+      "entry_id": "1tQhHjuoTDVeuUjn6PHdRy",
+      "glossary": [
+        {
+          "identifier": "Forced Turnovers",
+          "value": "Situations where a player or team forces the opponent to lose possession of the ball due to events such as pressure, tackles, or interceptions."
+        },
+        {
+          "identifier": "Ball Recovery Time",
+          "value": "The duration of time it takes for a team to regain possession after losing the ball, indicating pressing efficiency."
+        },
+        {
+          "identifier": "Own Goals",
+          "value": "Own Goals occur when a player inadvertently directs the ball into their own team's net, resulting in a goal being awarded to the opposing team."
+        },
+        {
+          "identifier": "Defensive Pressures Applied",
+          "value": "The total number of pressing actions applied by a player or team in an attempt to challenge for the ball ball carrier and disrupt the opponents possession."
+        },
+        {
+          "identifier": "Defensive Pressures Directly Applied",
+          "value": "Defensive pressures that occur directly against the opponent in possession of the ball, aiming to provoke errors or turnovers by physically challenging for the ball."
+        }
+      ],
+      "main_stat": "gct_defending",
+      "stat_keys": [
+        "gct_defending"
+      ],
+      "title": "Defending"
+    },
+    {
+      "display_top_card": true,
+      "entry_id": "1T4Tkxl1Zk4osMoZgKpxDw",
+      "glossary": [
+        {
+          "identifier": "Fouls Against",
+          "value": " The number of fouls a player or team commits against the opposition."
+        },
+        {
+          "identifier": "Fouls For",
+          "value": " The number of fouls a player or team wins against the opposition."
+        },
+        {
+          "identifier": "Yellow Cards",
+          "value": "Official cautions given by the referee for misconduct, recorded and tracked for disciplinary purposes."
+        },
+        {
+          "identifier": "Red Cards",
+          "value": "Direct dismissals given for serious offences, resulting in a player being sent off and banned from further participation in the match."
+        },
+        {
+          "identifier": "Indirect Red Cards",
+          "value": "Dismissals resulting from the accumulation of two yellow cards in the same match."
+        },
+        {
+          "identifier": "Offsides",
+          "value": "Instances where a player is penalised for being in an offside position when involved in active play at the moment the ball is played to them."
+        }
+      ],
+      "main_stat": "gct_discipline",
+      "stat_keys": [
+        "gct_discipline"
+      ],
+      "title": "Discipline"
+    },
+    {
+      "display_top_card": true,
+      "entry_id": "3qa3lQJ0DK6sgFP8SQe4KA",
+      "glossary": [
+        {
+          "identifier": "Clean Sheets",
+          "value": "Matches in which a team does not concede any goals, typically used to evaluate defensive and goalkeeper performance."
+        },
+        {
+          "identifier": "Goals Conceded",
+          "value": "Goals Conceded indicate the total number of goals a team has allowed their opponent to score. "
+        },
+        {
+          "identifier": "Goalkeeper Goal Preventions",
+          "value": "The total number of successful goalkeeping actions that prevent a goal from being scored, including any attempt at goal stopped or deflected by the goalkeeper using any part of the body within the rules."
+        },
+        {
+          "identifier": "Goalkeeper Actions Inside the Penalty Area",
+          "value": "All defensive interventions made by the goalkeeper within their own penalty area, including saves, punches, and claims."
+        },
+        {
+          "identifier": "Goalkeeper Actions Outside the Penalty Area",
+          "value": "All defensive interventions made by the goalkeeper outside their penalty area, often involving tackles or clearances."
+        }
+      ],
+      "main_stat": "gct_goalkeeping",
+      "stat_keys": [
+        "gct_goalkeeping"
+      ],
+      "title": "Goalkeeping"
+    },
+    {
+      "display_top_card": true,
+      "entry_id": "5ABG8eUKa2i5v1tJ7uz8Dd",
+      "glossary": [
+        {
+          "identifier": "Offers To Receive",
+          "value": "When a player has actively signalled, changed body shape or made a clear movement to receive the ball from a teammate. "
+        },
+        {
+          "identifier": "Offers In Behind",
+          "value": "When a player has actively signalled, changed body shape or made a clear movement to receive the ball in behind the oppositions defensive line."
+        },
+        {
+          "identifier": "Offers In Between",
+          "value": "When a player has actively signalled, changed body shape or made a clear movement to receive the ball in between the oppositions team shape or units."
+        },
+        {
+          "identifier": "Offers In Front",
+          "value": "When a player has actively signalled, changed body shape or made a clear movement to receive the ball in front of the oppositions team shape."
+        },
+        {
+          "identifier": "Offers Inside Team Shape",
+          "value": "When a player has actively signalled, changed body shape or made a clear movement to receive the ball inside the opposition team shape."
+        },
+        {
+          "identifier": "Offers Outside Team Shape",
+          "value": "When a player has actively signalled, changed body shape or made a clear movement to receive the ball outside the opposition team shape."
+        },
+        {
+          "identifier": "Receptions In Behind",
+          "value": "Successful receptions of the ball beyond the oppositions last defensive line, indicating threat creation."
+        },
+        {
+          "identifier": "Receptions Between Midfield And Defensive Line",
+          "value": "Receptions of the ball in the space between the oppositions  midfield and defensive line, facilitating vertical progression of ther ball towards the goal."
+        },
+        {
+          "identifier": "Receptions Under Pressure",
+          "value": "Instances where a player receives the ball while being actively pressed or challenged by an opponent."
+        }
+      ],
+      "main_stat": "gct_movement",
+      "stat_keys": [
+        "gct_movement"
+      ],
+      "title": "Movement"
+    },
+    {
+      "display_top_card": true,
+      "entry_id": "2TPtcRAYbbN7QgjjRoeDVg",
+      "glossary": [
+        {
+          "identifier": "Average Speed (km/h)",
+          "value": "The average running speed of a player throughout the match, typically measured in km/h."
+        },
+        {
+          "identifier": "High Speed Running",
+          "value": "High-intensity runs made by a player that exceed a defined speed threshold, used to measure physical exertion."
+        },
+        {
+          "identifier": "Sprints",
+          "value": "Explosive high-speed movements, generally measured above a set sprint threshold."
+        },
+        {
+          "identifier": "Top Speed (km/h)",
+          "value": "The highest velocity reached by a player during the match. For a Player or Team collectively. "
+        },
+        {
+          "identifier": "Total Distance (km)",
+          "value": "The cumulative distance a player covers during a match, recorded in meters or kilometers, across all speeds and intensities. For a Player or Team collectively. "
+        }
+      ],
+      "main_stat": "gct_physical",
+      "stat_keys": [
+        "gct_physical"
+      ],
+      "title": "Physical"
+    }
+  ],
+  "entry_id": "4gFfqEmIn49B1LXUN3cUgC",
+  "season_id": "285023",
+  "title": "Team Statistics",
+  "type": "Team",
+  "view_type": "Expanded"
+}

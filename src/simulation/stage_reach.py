@@ -19,7 +19,7 @@ from src.simulation.knockout_stage import (
     THIRD_PLACE_MATCH_NUMBER,
     _next_round_pairings,
     _play_round,
-    build_round_of_32,
+    resolve_round_of_32_pairings,
 )
 
 STAGE_COLUMNS = [
@@ -76,7 +76,10 @@ def simulate_one_tournament(
         )
         group_rankings[group_id] = ranking
 
-    round_of_32_pairings, best_third = build_round_of_32(group_rankings)
+    round_of_32_pairings, best_third = resolve_round_of_32_pairings(
+        group_rankings,
+        resolved_results=resolved_results,
+    )
     round_of_32_results = _play_round(model, round_of_32_pairings, rng, resolved_results=resolved_results)
 
     round_of_16_pairings = _next_round_pairings(round_of_32_results, "R16", R16_MATCH_NUMBERS)

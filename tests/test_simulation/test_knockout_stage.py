@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.simulation.knockout_stage import simulate_knockout_stage
+import pandas as pd
+
+from src.simulation.knockout_stage import resolve_round_of_32_pairings, simulate_knockout_stage
 
 
 class StubKnockoutModel:
@@ -172,3 +174,61 @@ def test_knockout_projection_adjusts_score_to_match_advancement_signal(monkeypat
     assert projected_match["winner"] == "Home 1"
     assert projected_match["score"] == {"home": 1, "away": 1}
     assert projected_match["advancement_method"] == "penalties"
+
+
+def test_round_of_32_uses_official_fifa_bracket_only_after_full_group_resolution(monkeypatch) -> None:
+    baseline_pairings = [
+        {
+            "match_id": "R32-1",
+            "annex_c": "M73",
+            "round": "round_of_32",
+            "home_team": "Baseline Home",
+            "away_team": "Baseline Away",
+            "home_path": "2A",
+            "away_path": "2B",
+        }
+    ]
+    official_round_of_32 = pd.DataFrame(
+        [
+            {
+                "annex_c": f"M{72 + index}",
+                "match_number": 72 + index,
+                "date": "",
+                "home_team": f"Official Home {index}",
+                "away_team": f"Official Away {index}",
+                "home_path": f"H{index}",
+                "away_path": f"A{index}",
+            }
+            for index in range(1, 17)
+        ]
+    )
+
+    monkeypatch.setattr(
+        "src.simulation.knockout_stage.build_round_of_32",
+        lambda _group_rankings: (baseline_pairings, [{"team": "Baseline Third", "group": "A"}]),
+    )
+    monkeypatch.setattr(
+        "src.simulation.knockout_stage.load_official_round_of_32",
+        lambda: official_round_of_32,
+    )
+    monkeypatch.setattr(
+        "src.simulation.knockout_stage.load_official_best_third",
+        lambda: [{"team": "Official Third", "group": "A"}],
+    )
+
+    unresolved_pairings, unresolved_best_third = resolve_round_of_32_pairings(
+        {},
+        resolved_results={f"GRP-{index}": {"home_goals": 1, "away_goals": 0} for index in range(1, 71)},
+    )
+    resolved_pairings, resolved_best_third = resolve_round_of_32_pairings(
+        {},
+        resolved_results={f"GRP-{index}": {"home_goals": 1, "away_goals": 0} for index in range(1, 73)},
+    )
+
+    official_m73 = next(match for match in resolved_pairings if match["annex_c"] == "M73")
+
+    assert unresolved_pairings == baseline_pairings
+    assert unresolved_best_third == [{"team": "Baseline Third", "group": "A"}]
+    assert official_m73["home_team"] == "Official Home 1"
+    assert official_m73["away_team"] == "Official Away 1"
+    assert resolved_best_third == [{"team": "Official Third", "group": "A"}]

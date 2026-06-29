@@ -9,9 +9,11 @@ from typing import Any
 import numpy as np
 
 from src.config import RAW_THIRD_PLACE_MAPPING_FILE
+from src.data.fifa_official import load_official_best_third, load_official_round_of_32
 from src.models.ensemble import EnsembleModel
 from src.simulation.group_stage import rank_third_placed_teams
 from src.simulation.penalties import penalty_home_probability, pick_penalty_winner
+from src.utils.constants import GROUP_STAGE_MATCH_COUNT
 from src.utils.helpers import load_json
 
 # Each entry: (match_id, annex_c_number, round, home_ref, away_ref)
@@ -190,7 +192,7 @@ def _team_from_reference(
 
 
 def build_round_of_32(group_rankings: dict[str, list[dict[str, Any]]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Build the official round-of-32 bracket, including best third-placed teams."""
+    """Build baseline round-of-32 pairings from projected group rankings."""
 
     third_place_rankings = rank_third_placed_teams(group_rankings)
     qualified_third = third_place_rankings[:8]
@@ -215,6 +217,62 @@ def build_round_of_32(group_rankings: dict[str, list[dict[str, Any]]]) -> tuple[
             }
         )
     return matches, qualified_third
+
+
+def _resolved_group_stage_count(resolved_results: dict[str, dict[str, Any]] | None = None) -> int:
+    resolved_results = resolved_results or {}
+    return sum(1 for match_id in resolved_results if str(match_id).startswith("GRP-"))
+
+
+def _official_round_of_32_ready(resolved_results: dict[str, dict[str, Any]] | None = None) -> bool:
+    return _resolved_group_stage_count(resolved_results) >= GROUP_STAGE_MATCH_COUNT
+
+
+def _load_official_round_of_32_pairings() -> tuple[list[dict[str, Any]], list[dict[str, Any]]] | None:
+    official_round_of_32 = load_official_round_of_32()
+    if official_round_of_32.empty:
+        return None
+
+    official_lookup = {
+        str(row.annex_c): row
+        for row in official_round_of_32.itertuples(index=False)
+        if str(row.home_team) not in {"", "TBD"} and str(row.away_team) not in {"", "TBD"}
+    }
+    if len(official_lookup) < len(ROUND_OF_32_TEMPLATE):
+        return None
+
+    pairings: list[dict[str, Any]] = []
+    for match_id, annex_c, round_name, *_ in ROUND_OF_32_TEMPLATE:
+        row = official_lookup.get(annex_c)
+        if row is None:
+            return None
+        pairings.append(
+            {
+                "match_id": match_id,
+                "annex_c": annex_c,
+                "round": round_name,
+                "home_team": str(row.home_team),
+                "away_team": str(row.away_team),
+                "home_path": str(row.home_path),
+                "away_path": str(row.away_path),
+            }
+        )
+    return pairings, load_official_best_third()
+
+
+def resolve_round_of_32_pairings(
+    group_rankings: dict[str, list[dict[str, Any]]],
+    resolved_results: dict[str, dict[str, Any]] | None = None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Return baseline pairings or the official FIFA bracket when the group stage is complete."""
+
+    pairings, best_third = build_round_of_32(group_rankings)
+    if not _official_round_of_32_ready(resolved_results):
+        return pairings, best_third
+    official_pairings = _load_official_round_of_32_pairings()
+    if official_pairings is None:
+        return pairings, best_third
+    return official_pairings
 
 
 def _resolve_knockout_match(model: EnsembleModel, home_team: str, away_team: str, rng: np.random.Generator, match_id: str) -> dict[str, Any]:
@@ -431,8 +489,11 @@ def simulate_knockout_stage(
 
     rng = np.random.default_rng(seed)
     champion_counts: dict[str, int] = defaultdict(int)
-    round_of_32_pairings, best_third = build_round_of_32(group_rankings)
     resolved_results = resolved_results or {}
+    round_of_32_pairings, best_third = resolve_round_of_32_pairings(
+        group_rankings,
+        resolved_results=resolved_results,
+    )
 
     projected_round_of_32 = _project_round(model, round_of_32_pairings, resolved_results=resolved_results)
     _attach_pairing_metadata(round_of_32_pairings, projected_round_of_32)

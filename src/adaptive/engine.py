@@ -119,6 +119,74 @@ class AdaptiveEngine:
             snapshots.append(response["snapshot_id"])
         return {"snapshots": snapshots, "count": len(results)}
 
+    def build_snapshot_from_results_file(
+        self,
+        file_path: str,
+        descriptor: str = "after_group_stage_complete",
+        refresh_official_data: bool = True,
+    ) -> dict[str, Any]:
+        """Create or refresh one comparison snapshot from a CSV of resolved results."""
+
+        from src.data.fifa_official import refresh_official_fifa_data
+
+        baseline_snapshot_id = self.create_baseline_snapshot()
+        baseline_state = self.snapshot_manager.read_snapshot(baseline_snapshot_id, "state.json")
+        if baseline_state is None:
+            raise FileNotFoundError(f"Baseline snapshot {baseline_snapshot_id} does not contain state.json.")
+
+        original_state = copy.deepcopy(self.state_machine._state)  # noqa: SLF001
+        existing_snapshot = next((detail for detail in self._snapshot_details() if detail["descriptor"] == descriptor), None)
+        frame = pd.read_csv(file_path, comment="#").dropna(subset=["match_id"])
+
+        try:
+            if refresh_official_data:
+                refresh_official_fifa_data()
+
+            self.state_machine.reset(snapshot_state=baseline_state)
+            ingested_results: list[dict[str, Any]] = []
+            for row in frame.itertuples(index=False):
+                ingest_result = self.ingester.ingest(
+                    match_id=str(row.match_id),
+                    home_goals=int(row.home_goals),
+                    away_goals=int(row.away_goals),
+                    winner=None if pd.isna(getattr(row, "winner", None)) else str(getattr(row, "winner")),
+                )
+                ingested_results.append(ingest_result.__dict__)
+
+            train_models(force=True)
+            simulator = TournamentSimulator(iterations=self.iterations)
+            output = simulator.run(resolved_results=self.state_machine.resolved_results())
+            self._sync_state_from_output(output)
+            team_features, rosters, model_metadata = self._snapshot_payloads()
+
+            if existing_snapshot is not None:
+                snapshot_id = self.snapshot_manager.update_snapshot(
+                    existing_snapshot["snapshot_id"],
+                    output,
+                    self.state_machine._state,  # noqa: SLF001
+                    team_features,
+                    rosters,
+                    model_metadata,
+                )
+            else:
+                snapshot_id = self.snapshot_manager.create_snapshot(
+                    descriptor,
+                    output,
+                    self.state_machine._state,  # noqa: SLF001
+                    team_features,
+                    rosters,
+                    model_metadata,
+                )
+        finally:
+            self.state_machine.reset(snapshot_state=original_state)
+
+        return {
+            "baseline_snapshot": baseline_snapshot_id,
+            "snapshot_id": snapshot_id,
+            "matches_ingested": len(frame),
+            "ingested": ingested_results,
+        }
+
     def tournament_status(self) -> dict[str, Any]:
         simulator = TournamentSimulator(iterations=max(100, self.iterations // 2))
         current = simulator.run(resolved_results=self.state_machine.resolved_results())

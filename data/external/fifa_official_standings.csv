@@ -1,0 +1,49 @@
+team,team_id,association_code,group,position,played,won,drawn,lost,goals_for,goals_against,goal_difference,points,team_conduct_score,qualification_status
+Mexico,43911,MEX,A,1,3,3,0,0,6,0,6,9,-6,ConfirmedQualified
+South Africa,43883,RSA,A,2,3,1,1,1,2,3,-1,4,-13,ConfirmedQualified
+South Korea,43822,KOR,A,3,3,1,0,2,2,3,-1,3,-4,Eliminated
+Czech Republic,43995,CZE,A,4,3,0,1,2,2,6,-4,1,-1,Eliminated
+Switzerland,43971,SUI,B,1,3,2,1,0,7,3,4,7,-3,ConfirmedQualified
+Canada,43899,CAN,B,2,3,1,1,1,8,3,5,4,-5,ConfirmedQualified
+Bosnia and Herzegovina,44037,BIH,B,3,3,1,1,1,5,6,-1,4,-10,ConfirmedQualified
+Qatar,43834,QAT,B,4,3,0,1,2,2,10,-8,1,-12,Eliminated
+Brazil,43924,BRA,C,1,3,2,1,0,7,1,6,7,-5,ConfirmedQualified
+Morocco,43872,MAR,C,2,3,2,1,0,6,3,3,7,-1,ConfirmedQualified
+Scotland,43967,SCO,C,3,3,1,0,2,1,4,-3,3,-5,Eliminated
+Haiti,43908,HAI,C,4,3,0,0,3,2,8,-6,0,-7,Eliminated
+United States,43921,USA,D,1,3,2,0,1,8,4,4,6,-5,ConfirmedQualified
+Australia,43976,AUS,D,2,3,1,1,1,2,2,0,4,-5,ConfirmedQualified
+Paraguay,43928,PAR,D,3,3,1,1,1,2,4,-2,4,-12,ConfirmedQualified
+Turkey,43972,TUR,D,4,3,1,0,2,3,5,-2,3,-3,Eliminated
+Germany,43948,GER,E,1,3,2,0,1,10,4,6,6,-1,ConfirmedQualified
+Ivory Coast,43854,CIV,E,2,3,2,0,1,4,2,2,6,-4,ConfirmedQualified
+Ecuador,43927,ECU,E,3,3,1,1,1,2,2,0,4,-5,ConfirmedQualified
+Curaçao,1895293,CUW,E,4,3,0,1,2,1,9,-8,1,-7,Eliminated
+Netherlands,43960,NED,F,1,3,2,1,0,10,4,6,7,-3,ConfirmedQualified
+Japan,43819,JPN,F,2,3,1,2,0,7,3,4,5,-1,ConfirmedQualified
+Sweden,43970,SWE,F,3,3,1,1,1,7,7,0,4,-5,ConfirmedQualified
+Tunisia,43888,TUN,F,4,3,0,0,3,2,12,-10,0,-1,Eliminated
+Belgium,43935,BEL,G,1,3,1,2,0,6,2,4,5,-7,ConfirmedQualified
+Egypt,43855,EGY,G,2,3,1,2,0,5,3,2,5,-6,ConfirmedQualified
+Iran,43817,IRN,G,3,3,0,3,0,3,3,0,3,-6,Eliminated
+New Zealand,43978,NZL,G,4,3,0,1,2,4,10,-6,1,-4,Eliminated
+Spain,43969,ESP,H,1,3,2,1,0,5,0,5,7,-2,ConfirmedQualified
+Cape Verde,43850,CPV,H,2,3,0,3,0,2,2,0,3,-4,ConfirmedQualified
+Uruguay,43930,URU,H,3,3,0,2,1,3,4,-1,2,-9,Eliminated
+Saudi Arabia,43835,KSA,H,4,3,0,2,1,1,5,-4,2,-6,Eliminated
+France,43946,FRA,I,1,3,3,0,0,10,2,8,9,-1,ConfirmedQualified
+Norway,43961,NOR,I,2,3,2,0,1,8,7,1,6,-1,ConfirmedQualified
+Senegal,43879,SEN,I,3,3,1,0,2,8,6,2,3,-2,ConfirmedQualified
+Iraq,43818,IRQ,I,4,3,0,0,3,1,12,-11,0,-8,Eliminated
+Argentina,43922,ARG,J,1,3,3,0,0,8,1,7,9,-2,ConfirmedQualified
+Austria,43934,AUT,J,2,3,1,1,1,6,6,0,4,-4,ConfirmedQualified
+Algeria,43843,ALG,J,3,3,1,1,1,5,7,-2,4,-1,ConfirmedQualified
+Jordan,43820,JOR,J,4,3,0,0,3,3,8,-5,0,-4,Eliminated
+Colombia,43926,COL,K,1,3,2,1,0,4,1,3,7,-4,ConfirmedQualified
+Portugal,43963,POR,K,2,3,1,2,0,6,1,5,5,-4,ConfirmedQualified
+DR Congo,20014,COD,K,3,3,1,1,1,4,3,1,4,-5,ConfirmedQualified
+Uzbekistan,44005,UZB,K,4,3,0,0,3,2,11,-9,0,-4,Eliminated
+England,43942,ENG,L,1,3,2,1,0,6,2,4,7,-2,ConfirmedQualified
+Croatia,43938,CRO,L,2,3,2,0,1,5,5,0,6,-2,ConfirmedQualified
+Ghana,43860,GHA,L,3,3,1,1,1,2,2,0,4,-3,ConfirmedQualified
+Panama,43914,PAN,L,4,3,0,0,3,0,4,-4,0,-5,Eliminated

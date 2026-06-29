@@ -161,11 +161,15 @@ Kaggle datasets are a perfectly valid starting point for **exploratory analysis,
 ### 1. Data Collection (`src/data/collector.py` & `src/data/scrapers.py`)
 The system begins by pulling raw data from various external sources. It fetches live FIFA rankings via web scraping, downloads historical Elo ratings from CSVs, and retrieves historical match records. It also uses team squad information. 
 
+For live tournament recalibration, the pipeline can additionally refresh official FIFA 2026 group standings and the official Round-of-32 bracket into `data/external/` via `src/data/fifa_official.py`.
+
 ### 2. Feature Engineering (`src/features/`)
 Because external data comes in different formats and uses different naming conventions (e.g., "USA" vs "United States"), the pipeline runs a team name resolver to canonicalize all references. Afterwards, it calculates head-to-head metrics:
 - **Elo Difference:** The fundamental baseline for team strength comparisons.
 - **Penalty Win Rates:** Essential for determining outcomes of knockout matches that end in a draw.
 - **Weather Proxies:** Modifiers for expected goals based on tournament location.
+
+After the group stage is fully resolved, the feature pipeline can also merge official FIFA standings-derived tournament-form fields such as points-per-match, goal-difference-per-match, and qualification status. These live tournament fields are intentionally gated so they do not leak future information into pre-group forecasts.
 
 ### 3. Modeling (`src/models/ensemble.py`)
 The data is fed into a dual-model ensemble:
@@ -177,6 +181,7 @@ The ensemble combines these predictions into a unified dictionary that returns b
 Using the predictions from the ensemble model, the system simulates the entire structure of the World Cup:
 - **Group Stage:** Simulates every match in the group stage to build points tables and determine which teams qualify, including the complex "Best 3rd-place" calculations.
 - **Deterministic Knockout Bracket:** For the dashboard UI, the system generates a single, most-likely bracket. At each stage, the team with the higher predicted advancement probability wins.
+- **Official Knockout Override:** Once all 72 group matches are resolved in local state, the simulator can replace the projected Round of 32 with the official FIFA bracket so future rounds advance from the real tournament tree.
 - **Monte Carlo Odds:** Simultaneously, the system simulates the tournament hundreds of times (e.g., 500 iterations) using random Poisson distributions based on the models. This provides the statistical likelihood for each team to win the overall tournament, accounting for different potential paths.
 
 ### 5. Presentation (`src/visualization/dashboard.py`)

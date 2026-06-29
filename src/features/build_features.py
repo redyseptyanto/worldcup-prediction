@@ -7,6 +7,7 @@ import pandas as pd
 
 from src.config import FIXTURE_CONTEXT_FILE, TEAM_FEATURES_FILE, TRAIN_DATASET_FILE, ensure_directories
 from src.data.collector import ensure_sample_data
+from src.data.fifa_official import load_official_tournament_form
 from src.data.loaders import load_fixtures, load_historical_matches, load_rankings, load_xg_matches
 from src.features.external_features import build_fixture_context, build_macro_features
 from src.features.history_features import build_training_dataset
@@ -24,11 +25,12 @@ def build_feature_artifacts() -> tuple[str, str]:
     ensure_directories()
     ensure_sample_data()
     from src.config import ROSTERS_FILE
-    
+
     matches = load_historical_matches()
     xg_matches = load_xg_matches()
     rankings = load_rankings()
     fixtures = load_fixtures()
+    official_tournament_form = load_official_tournament_form()
     training_df = build_training_dataset(matches, rankings, xg_matches=xg_matches)
     player_factors, roster_dict = build_player_factor_features()
     macro_factors = build_macro_features()
@@ -39,6 +41,7 @@ def build_feature_artifacts() -> tuple[str, str]:
         xg_matches=xg_matches,
         player_factors=player_factors,
         macro_factors=macro_factors,
+        tournament_form_factors=official_tournament_form,
         output_teams=set(tournament_teams),
     )
     fixture_context = build_fixture_context()

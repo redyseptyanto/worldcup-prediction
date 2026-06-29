@@ -7,7 +7,7 @@ snapshot ?=
 from ?=
 to ?=
 
-.PHONY: collect-data engineer-features train-models simulate predict serve-api serve-dashboard run-all test clean ingest-result ingest-batch tournament-status compare-snapshots evolution-report update-bracket rollback-to scheduler-run-now visualize-all visualize-bracket visualize-standings visualize-compare
+.PHONY: collect-data engineer-features train-models simulate predict serve-api serve-dashboard run-all test clean ingest-result ingest-batch snapshot-real-groups tournament-status compare-snapshots evolution-report update-bracket rollback-to scheduler-run-now visualize-all visualize-bracket visualize-standings visualize-compare
 
 collect-data:
 	$(PYTHON) -m src.data.collector --all
@@ -47,6 +47,9 @@ ingest-result:
 
 ingest-batch:
 	$(PYTHON) -c "from src.adaptive.engine import AdaptiveEngine; print(AdaptiveEngine().ingest_csv('$(file)'))"
+
+snapshot-real-groups:
+	$(PYTHON) scripts/ingest_group_stage.py
 
 tournament-status:
 	$(PYTHON) -c "from src.adaptive.engine import AdaptiveEngine; print(AdaptiveEngine().tournament_status())"

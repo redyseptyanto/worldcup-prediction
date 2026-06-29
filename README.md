@@ -59,6 +59,7 @@ The implementation currently uses:
 - squad and player context from SOFIFA and Transfermarkt-derived files
 - fixture weather context
 - macro indicators from World Bank data
+- official FIFA 2026 standings and Round-of-32 bracket snapshots under `data/external/`
 - real xG coverage merged from:
   - StatsBomb Open Data
   - archived FiveThirtyEight international SPI xG matches
@@ -77,6 +78,13 @@ The simulation layer does two different jobs:
   Used for the dashboard bracket, where each knockout match advances the team with the stronger advancement signal.
 
 Knockout scorelines are now aligned with the saved winner signal, so the displayed score supports the projected path instead of contradicting it.
+
+Once all 72 group-stage matches are resolved in local state, the pipeline can also:
+
+- merge official FIFA group-stage standings into team features as tournament-form calibration inputs
+- swap the projected Round of 32 for the official FIFA bracket so later rounds advance from the real pairings
+
+The guardrail is deliberate: these official tournament signals stay dormant before the group stage is complete, which avoids leaking future knowledge into pre-tournament or in-progress forecasts.
 
 Stage-reach analysis lives in:
 
@@ -176,6 +184,12 @@ pip install -r requirements.txt
 .\.venv\Scripts\python.exe -m src.features.build_features
 ```
 
+Optional, when the live tournament is underway:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.data.fifa_official --refresh
+```
+
 ### 4. Train the ensemble
 
 ```powershell
@@ -215,6 +229,7 @@ make train-models
 make simulate ITERATIONS=500
 make serve-dashboard
 make serve-api
+make snapshot-real-groups
 make test
 ```
 
@@ -237,6 +252,14 @@ Rollback to an earlier state branch:
 ```powershell
 make rollback-to snapshot=000_baseline
 ```
+
+Ingest the full real group stage and refresh official FIFA calibration inputs:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/ingest_group_stage.py
+```
+
+Or, if `data/external/real_group_stage_results.csv` is present, use the dashboard button to build the comparison snapshot while keeping `000_baseline` available in the selector.
 
 ## API Endpoints
 
