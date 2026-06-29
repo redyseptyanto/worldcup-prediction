@@ -60,6 +60,7 @@ The implementation currently uses:
 - fixture weather context
 - macro indicators from World Bank data
 - official FIFA 2026 standings and Round-of-32 bracket snapshots under `data/external/`
+- official FIFA 2026 team-stat category exports and normalized table rows under `data/external/`
 - real xG coverage merged from:
   - StatsBomb Open Data
   - archived FiveThirtyEight international SPI xG matches
@@ -89,6 +90,7 @@ The guardrail is deliberate: these official tournament signals stay dormant befo
 Stage-reach analysis lives in:
 
 - [`notebooks/stage_reach_probabilities.ipynb`](notebooks/stage_reach_probabilities.ipynb)
+- [`notebooks/official_recent_stats_knockout_projection.ipynb`](notebooks/official_recent_stats_knockout_projection.ipynb)
 - [`src/simulation/stage_reach.py`](src/simulation/stage_reach.py)
 
 ## Snapshots And Adaptive Flow
@@ -189,6 +191,14 @@ Optional, when the live tournament is underway:
 ```powershell
 .\.venv\Scripts\python.exe -m src.data.fifa_official --refresh
 ```
+
+That refresh now persists:
+
+- official standings CSV + raw JSON
+- official Round-of-32 CSV + raw bracket JSON
+- official team-stat category catalog JSON
+- best-effort raw and normalized exports for all visible FIFA team-stat filters such as `Attacking`, `Distribution`, `Defending`, `Discipline`, `Goalkeeping`, `Movement`, and `Physical`
+  - if the direct FIFA stats API is blocked, the refresh falls back to scraping the rendered stats table through a local Chrome or Edge browser session
 
 ### 4. Train the ensemble
 

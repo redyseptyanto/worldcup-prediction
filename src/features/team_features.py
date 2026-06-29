@@ -16,6 +16,7 @@ def compute_team_summary(
     player_factors: pd.DataFrame | None = None,
     macro_factors: pd.DataFrame | None = None,
     tournament_form_factors: pd.DataFrame | None = None,
+    official_team_stats_factors: pd.DataFrame | None = None,
     output_teams: set[str] | None = None,
 ) -> pd.DataFrame:
     """Compute current team-level summary metrics from historical matches."""
@@ -114,11 +115,15 @@ def compute_team_summary(
                 "form_points_avg": round(points, 3),
                 "attack_strength": round(max(0.35, goals_for), 3),
                 "defense_strength": round(max(0.35, goals_against), 3),
+                "base_attack_strength": round(max(0.35, goals_for), 3),
+                "base_defense_strength": round(max(0.35, goals_against), 3),
                 "world_cup_pedigree": pedigree["world_cup_pedigree"],
                 "world_cup_semi_final_rate": pedigree["world_cup_semi_final_rate"],
                 "world_cup_appearances": pedigree["world_cup_appearances"],
                 "xg_for_avg": round(xg_for_avg, 3),
                 "xg_against_avg": round(xg_against_avg, 3),
+                "base_xg_for_avg": round(xg_for_avg, 3),
+                "base_xg_against_avg": round(xg_against_avg, 3),
                 "xg_balance": round(xg_for_avg - xg_against_avg, 3),
                 "xg_overperformance": round(xg_overperformance, 3),
                 "xg_defensive_overperformance": round(xg_defensive_overperformance, 3),
@@ -144,6 +149,56 @@ def compute_team_summary(
             "tournament_qualified": 0.0,
         }.items():
             summary[column] = summary[column].fillna(default)
+    if official_team_stats_factors is not None and not official_team_stats_factors.empty:
+        summary = summary.merge(official_team_stats_factors, on="team", how="left")
+    for column, default in {
+        "official_stats_matches_played": 0.0,
+        "official_stats_weight": 0.0,
+        "official_attack_index": 0.0,
+        "official_distribution_index": 0.0,
+        "official_defense_index": 0.0,
+        "official_goalkeeping_index": 0.0,
+        "official_discipline_index": 0.0,
+        "official_movement_index": 0.0,
+        "official_physical_index": 0.0,
+        "official_xg_signal": 0.0,
+        "official_attack_signal": 0.0,
+        "official_defense_signal": 0.0,
+        "official_control_signal": 0.0,
+        "official_recent_form_index": 0.0,
+    }.items():
+        if column not in summary.columns:
+            summary[column] = default
+        else:
+            summary[column] = summary[column].fillna(default)
+
+    weight = summary["official_stats_weight"].clip(lower=0.0, upper=0.35)
+    attack_signal = summary["official_attack_signal"].clip(-1.0, 1.0)
+    defense_signal = summary["official_defense_signal"].clip(-1.0, 1.0)
+    xg_signal = summary["official_xg_signal"].clip(-1.0, 1.0)
+    recent_signal = summary["official_recent_form_index"].clip(-1.0, 1.0)
+    control_signal = summary["official_control_signal"].clip(-1.0, 1.0)
+
+    summary["attack_strength"] = (
+        summary["base_attack_strength"]
+        * (1.0 + weight * (0.26 * attack_signal + 0.08 * recent_signal + 0.04 * control_signal))
+    ).clip(lower=0.35)
+    summary["defense_strength"] = (
+        summary["base_defense_strength"]
+        * (1.0 - weight * (0.22 * defense_signal + 0.08 * recent_signal))
+    ).clip(lower=0.2)
+    summary["xg_for_avg"] = (
+        summary["base_xg_for_avg"]
+        * (1.0 + weight * (0.22 * xg_signal + 0.08 * attack_signal + 0.04 * recent_signal))
+    ).clip(lower=0.2)
+    summary["xg_against_avg"] = (
+        summary["base_xg_against_avg"]
+        * (1.0 - weight * (0.18 * defense_signal + 0.06 * recent_signal))
+    ).clip(lower=0.2)
+    summary["form_points_avg"] = (
+        summary["form_points_avg"] * (1.0 + weight * 0.14 * recent_signal)
+    ).clip(lower=0.0)
+    summary["xg_balance"] = summary["xg_for_avg"] - summary["xg_against_avg"]
 
     # Merge penalty features
     from src.data.loaders import load_penalties
@@ -154,5 +209,19 @@ def compute_team_summary(
         summary["penalty_win_rate"] = summary["penalty_win_rate"].fillna(0.5)
     else:
         summary["penalty_win_rate"] = 0.5
+
+    round_columns = [
+        "attack_strength",
+        "defense_strength",
+        "base_attack_strength",
+        "base_defense_strength",
+        "xg_for_avg",
+        "xg_against_avg",
+        "base_xg_for_avg",
+        "base_xg_against_avg",
+        "xg_balance",
+        "form_points_avg",
+    ]
+    summary[round_columns] = summary[round_columns].round(3)
 
     return summary

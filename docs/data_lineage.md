@@ -161,7 +161,7 @@ Kaggle datasets are a perfectly valid starting point for **exploratory analysis,
 ### 1. Data Collection (`src/data/collector.py` & `src/data/scrapers.py`)
 The system begins by pulling raw data from various external sources. It fetches live FIFA rankings via web scraping, downloads historical Elo ratings from CSVs, and retrieves historical match records. It also uses team squad information. 
 
-For live tournament recalibration, the pipeline can additionally refresh official FIFA 2026 group standings and the official Round-of-32 bracket into `data/external/` via `src/data/fifa_official.py`.
+For live tournament recalibration, the pipeline can additionally refresh official FIFA 2026 group standings, the official Round-of-32 bracket, and the visible FIFA team-stat tables into `data/external/` via `src/data/fifa_official.py`.
 
 ### 2. Feature Engineering (`src/features/`)
 Because external data comes in different formats and uses different naming conventions (e.g., "USA" vs "United States"), the pipeline runs a team name resolver to canonicalize all references. Afterwards, it calculates head-to-head metrics:

@@ -78,6 +78,8 @@ streamlit run src/visualization/dashboard.py
 - `src/data/collector.py` also caches the current 2026 group-stage field, fixture book, weather proxies, and bracket rules
 - `src/data/loaders.py` loads fixtures, rankings, and historical matches
 - `src/data/fifa_official.py` refreshes official FIFA 2026 standings, best-third qualifiers, and the Round-of-32 bracket into `data/external/`
+  - the same module also saves the FIFA team-stat category catalog plus best-effort raw and normalized exports for the visible team-stat filters
+  - when direct stats API calls are blocked, that module can fall back to scraping the rendered FIFA stats table via a local Chrome or Edge browser
 - `src/data/preprocessors.py` validates and normalizes CSV inputs
 
 ### Feature Layer
@@ -107,6 +109,7 @@ Note:
 - `src/simulation/group_stage.py` supports the 12-group 2026 format and best third-placed ranking
 - `src/simulation/knockout_stage.py` handles the 32-team knockout bracket
 - when all 72 group matches are resolved, `src/simulation/knockout_stage.py` can override projected pairings with the official FIFA Round of 32
+- `notebooks/official_recent_stats_knockout_projection.ipynb` provides a recent-stats-only view of the remaining knockout path using the official FIFA team-stat tables
 - `src/simulation/tournament.py` produces tournament outputs
 
 ### Adaptive Layer
