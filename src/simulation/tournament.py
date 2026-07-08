@@ -55,6 +55,49 @@ class TournamentSimulator:
             )
         return rows
 
+    def _predict_knockout_matches(self, knockout_output: dict[str, Any]) -> list[dict[str, Any]]:
+        rows = []
+        bracket = knockout_output.get("bracket", knockout_output)
+        if not isinstance(bracket, dict):
+            return rows
+        for round_name in ["round_of_32", "round_of_16", "quarter_finals", "semi_finals", "third_place", "final"]:
+            matches = bracket.get(round_name, [])
+            if not isinstance(matches, list):
+                continue
+            for match in matches:
+                if not isinstance(match, dict):
+                    continue
+                home = match.get("home_team", "TBD")
+                away = match.get("away_team", "TBD")
+                if home == "TBD" or away == "TBD":
+                    continue
+                match_id = match.get("match_id", "")
+                prediction = self.model.predict_match(home, away, match_id=match_id)
+                rows.append(
+                    {
+                        "match_id": match_id,
+                        "stage": round_name,
+                        "group": "",
+                        "home_team": home,
+                        "away_team": away,
+                        "host_city": "",
+                        "predicted_home_goals": prediction["predicted_score"]["home"],
+                        "predicted_away_goals": prediction["predicted_score"]["away"],
+                        "home_win_probability": round(prediction["outcome_probabilities"]["home_win"], 4),
+                        "draw_probability": round(prediction["outcome_probabilities"]["draw"], 4),
+                        "away_win_probability": round(prediction["outcome_probabilities"]["away_win"], 4),
+                        "confidence": prediction["confidence"]["overall"],
+                        "confidence_label": prediction["confidence"]["label"],
+                        "weather_temperature": prediction["contextual_factors"].get("weather_temperature"),
+                        "weather_precipitation": prediction["contextual_factors"].get("weather_precipitation"),
+                        "weather_wind": prediction["contextual_factors"].get("weather_wind"),
+                        "rest_days_diff": prediction["contextual_factors"].get("rest_days_diff"),
+                        "travel_fatigue_diff": prediction["contextual_factors"].get("travel_fatigue_diff"),
+                        "prediction_details": prediction,
+                    }
+                )
+        return rows
+
     def run(self, resolved_results: dict[str, dict[str, int]] | None = None) -> dict[str, Any]:
         """Run the full baseline tournament workflow."""
 
@@ -72,7 +115,7 @@ class TournamentSimulator:
             seed=SETTINGS.random_seed + 1,
             resolved_results=resolved_results,
         )
-        predictions = self._predict_group_matches()
+        predictions = self._predict_group_matches() + self._predict_knockout_matches(knockout_results)
         pd.DataFrame(predictions).to_csv(PREDICTIONS_FILE, index=False)
         output = {
             "iterations": self.iterations,

@@ -13,7 +13,7 @@ from src.adaptive.ingester import ResultIngester
 from src.adaptive.rollback import RollbackManager
 from src.adaptive.snapshotter import SnapshotManager
 from src.adaptive.state_machine import MatchStateMachine
-from src.config import ROSTERS_FILE, TEAM_FEATURES_FILE
+from src.config import REAL_GROUP_STAGE_RESULTS_FILE, ROSTERS_FILE, TEAM_FEATURES_FILE
 from src.models.train import current_model_metadata, load_or_train_ensemble, train_models
 from src.simulation.tournament import TournamentSimulator
 from src.utils.helpers import load_json
@@ -52,6 +52,22 @@ class AdaptiveEngine:
             }
             for snapshot_id in self.snapshot_manager.list_snapshots()
         ]
+
+    def _latest_snapshot_with_descriptor(self, descriptor: str) -> dict[str, Any] | None:
+        for detail in reversed(self._snapshot_details()):
+            if detail["descriptor"] == descriptor:
+                return detail
+        return None
+
+    def _resolve_knockout_match_id(self, stage_prefix: str, home_team: str, away_team: str) -> tuple[str, bool]:
+        for match_id, match in self.state_machine._state.items():  # noqa: SLF001
+            if not match_id.startswith(stage_prefix):
+                continue
+            if match.get("home_team") == home_team and match.get("away_team") == away_team:
+                return match_id, False
+            if match.get("home_team") == away_team and match.get("away_team") == home_team:
+                return match_id, True
+        raise KeyError(f"Could not locate {stage_prefix} match for {home_team} vs {away_team}.")
 
     def _sync_state_from_output(self, output: dict[str, Any]) -> None:
         self.state_machine.sync_knockout_matches(output)
@@ -135,7 +151,7 @@ class AdaptiveEngine:
             raise FileNotFoundError(f"Baseline snapshot {baseline_snapshot_id} does not contain state.json.")
 
         original_state = copy.deepcopy(self.state_machine._state)  # noqa: SLF001
-        existing_snapshot = next((detail for detail in self._snapshot_details() if detail["descriptor"] == descriptor), None)
+        existing_snapshot = self._latest_snapshot_with_descriptor(descriptor)
         frame = pd.read_csv(file_path, comment="#").dropna(subset=["match_id"])
 
         try:
@@ -185,6 +201,214 @@ class AdaptiveEngine:
             "snapshot_id": snapshot_id,
             "matches_ingested": len(frame),
             "ingested": ingested_results,
+        }
+
+    def build_snapshot_after_round_of_32(
+        self,
+        *,
+        group_results_file: str = str(REAL_GROUP_STAGE_RESULTS_FILE),
+        descriptor: str = "after_round_of_32_complete",
+        refresh_official_data: bool = True,
+    ) -> dict[str, Any]:
+        """Create or refresh a snapshot with real group results plus official Round-of-32 outcomes."""
+
+        from src.data.fifa_official import load_official_completed_round_of_32_results
+
+        baseline_snapshot_id = self.create_baseline_snapshot()
+        baseline_state = self.snapshot_manager.read_snapshot(baseline_snapshot_id, "state.json")
+        if baseline_state is None:
+            raise FileNotFoundError(f"Baseline snapshot {baseline_snapshot_id} does not contain state.json.")
+
+        original_state = copy.deepcopy(self.state_machine._state)  # noqa: SLF001
+        existing_snapshot = self._latest_snapshot_with_descriptor(descriptor)
+        group_frame = pd.read_csv(group_results_file, comment="#").dropna(subset=["match_id"])
+        round_of_32_frame = load_official_completed_round_of_32_results(
+            refresh=refresh_official_data,
+            save_to_csv=True,
+        )
+        if round_of_32_frame.empty:
+            raise ValueError("Official FIFA feed does not contain any completed Round of 32 matches yet.")
+
+        try:
+            self.state_machine.reset(snapshot_state=baseline_state)
+
+            ingested_group_results: list[dict[str, Any]] = []
+            for row in group_frame.itertuples(index=False):
+                ingest_result = self.ingester.ingest(
+                    match_id=str(row.match_id),
+                    home_goals=int(row.home_goals),
+                    away_goals=int(row.away_goals),
+                    winner=None if pd.isna(getattr(row, "winner", None)) else str(getattr(row, "winner")),
+                )
+                ingested_group_results.append(ingest_result.__dict__)
+
+            train_models(force=True)
+            simulator = TournamentSimulator(iterations=self.iterations)
+            output = simulator.run(resolved_results=self.state_machine.resolved_results())
+            self._sync_state_from_output(output)
+
+            ingested_round_of_32_results: list[dict[str, Any]] = []
+            for row in round_of_32_frame.itertuples(index=False):
+                ingest_result = self.ingester.ingest(
+                    match_id=str(row.match_id),
+                    home_goals=int(row.home_goals),
+                    away_goals=int(row.away_goals),
+                    winner=None if pd.isna(getattr(row, "winner", None)) else str(getattr(row, "winner")),
+                )
+                ingested_round_of_32_results.append(ingest_result.__dict__)
+
+            train_models(force=True)
+            simulator = TournamentSimulator(iterations=self.iterations)
+            output = simulator.run(resolved_results=self.state_machine.resolved_results())
+            self._sync_state_from_output(output)
+            team_features, rosters, model_metadata = self._snapshot_payloads()
+
+            if existing_snapshot is not None:
+                snapshot_id = self.snapshot_manager.update_snapshot(
+                    existing_snapshot["snapshot_id"],
+                    output,
+                    self.state_machine._state,  # noqa: SLF001
+                    team_features,
+                    rosters,
+                    model_metadata,
+                )
+            else:
+                snapshot_id = self.snapshot_manager.create_snapshot(
+                    descriptor,
+                    output,
+                    self.state_machine._state,  # noqa: SLF001
+                    team_features,
+                    rosters,
+                    model_metadata,
+                )
+        finally:
+            self.state_machine.reset(snapshot_state=original_state)
+
+        return {
+            "baseline_snapshot": baseline_snapshot_id,
+            "snapshot_id": snapshot_id,
+            "group_matches_ingested": len(ingested_group_results),
+            "round_of_32_matches_ingested": len(ingested_round_of_32_results),
+        }
+
+    def build_snapshot_after_round_of_16(
+        self,
+        *,
+        group_results_file: str = str(REAL_GROUP_STAGE_RESULTS_FILE),
+        descriptor: str = "after_round_of_16_complete",
+        refresh_official_data: bool = True,
+    ) -> dict[str, Any]:
+        """Create or refresh a snapshot with real group, Round-of-32, and Round-of-16 outcomes."""
+
+        from src.data.fifa_official import (
+            load_official_completed_round_of_16_results,
+            load_official_completed_round_of_32_results,
+        )
+
+        baseline_snapshot_id = self.create_baseline_snapshot()
+        baseline_state = self.snapshot_manager.read_snapshot(baseline_snapshot_id, "state.json")
+        if baseline_state is None:
+            raise FileNotFoundError(f"Baseline snapshot {baseline_snapshot_id} does not contain state.json.")
+
+        original_state = copy.deepcopy(self.state_machine._state)  # noqa: SLF001
+        existing_snapshot = self._latest_snapshot_with_descriptor(descriptor)
+        group_frame = pd.read_csv(group_results_file, comment="#").dropna(subset=["match_id"])
+        round_of_32_frame = load_official_completed_round_of_32_results(
+            refresh=refresh_official_data,
+            save_to_csv=True,
+        )
+        round_of_16_frame = load_official_completed_round_of_16_results(
+            refresh=False,
+            save_to_csv=True,
+        )
+        if round_of_32_frame.empty:
+            raise ValueError("Official FIFA feed does not contain any completed Round of 32 matches yet.")
+        if round_of_16_frame.empty:
+            raise ValueError("Official FIFA feed does not contain any completed Round of 16 matches yet.")
+
+        try:
+            self.state_machine.reset(snapshot_state=baseline_state)
+
+            ingested_group_results: list[dict[str, Any]] = []
+            for row in group_frame.itertuples(index=False):
+                ingest_result = self.ingester.ingest(
+                    match_id=str(row.match_id),
+                    home_goals=int(row.home_goals),
+                    away_goals=int(row.away_goals),
+                    winner=None if pd.isna(getattr(row, "winner", None)) else str(getattr(row, "winner")),
+                )
+                ingested_group_results.append(ingest_result.__dict__)
+
+            train_models(force=True)
+            simulator = TournamentSimulator(iterations=self.iterations)
+            output = simulator.run(resolved_results=self.state_machine.resolved_results())
+            self._sync_state_from_output(output)
+
+            ingested_round_of_32_results: list[dict[str, Any]] = []
+            for row in round_of_32_frame.itertuples(index=False):
+                ingest_result = self.ingester.ingest(
+                    match_id=str(row.match_id),
+                    home_goals=int(row.home_goals),
+                    away_goals=int(row.away_goals),
+                    winner=None if pd.isna(getattr(row, "winner", None)) else str(getattr(row, "winner")),
+                )
+                ingested_round_of_32_results.append(ingest_result.__dict__)
+
+            train_models(force=True)
+            simulator = TournamentSimulator(iterations=self.iterations)
+            output = simulator.run(resolved_results=self.state_machine.resolved_results())
+            self._sync_state_from_output(output)
+
+            ingested_round_of_16_results: list[dict[str, Any]] = []
+            for row in round_of_16_frame.itertuples(index=False):
+                resolved_match_id, reversed_teams = self._resolve_knockout_match_id(
+                    "R16-",
+                    str(row.home_team),
+                    str(row.away_team),
+                )
+                home_goals = int(row.away_goals) if reversed_teams else int(row.home_goals)
+                away_goals = int(row.home_goals) if reversed_teams else int(row.away_goals)
+                ingest_result = self.ingester.ingest(
+                    match_id=resolved_match_id,
+                    home_goals=home_goals,
+                    away_goals=away_goals,
+                    winner=None if pd.isna(getattr(row, "winner", None)) else str(getattr(row, "winner")),
+                )
+                ingested_round_of_16_results.append(ingest_result.__dict__)
+
+            train_models(force=True)
+            simulator = TournamentSimulator(iterations=self.iterations)
+            output = simulator.run(resolved_results=self.state_machine.resolved_results())
+            self._sync_state_from_output(output)
+            team_features, rosters, model_metadata = self._snapshot_payloads()
+
+            if existing_snapshot is not None:
+                snapshot_id = self.snapshot_manager.update_snapshot(
+                    existing_snapshot["snapshot_id"],
+                    output,
+                    self.state_machine._state,  # noqa: SLF001
+                    team_features,
+                    rosters,
+                    model_metadata,
+                )
+            else:
+                snapshot_id = self.snapshot_manager.create_snapshot(
+                    descriptor,
+                    output,
+                    self.state_machine._state,  # noqa: SLF001
+                    team_features,
+                    rosters,
+                    model_metadata,
+                )
+        finally:
+            self.state_machine.reset(snapshot_state=original_state)
+
+        return {
+            "baseline_snapshot": baseline_snapshot_id,
+            "snapshot_id": snapshot_id,
+            "group_matches_ingested": len(ingested_group_results),
+            "round_of_32_matches_ingested": len(ingested_round_of_32_results),
+            "round_of_16_matches_ingested": len(ingested_round_of_16_results),
         }
 
     def tournament_status(self) -> dict[str, Any]:

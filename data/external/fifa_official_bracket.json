@@ -7654,10 +7654,10 @@
             "IdCountry": "COD",
             "IdTeam": "20014",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/COD",
-            "Score": null,
+            "Score": 1,
             "ShortClubName": "Congo DR",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-1-4-1",
             "TeamName": [
               {
                 "Description": "Congo DR",
@@ -7668,7 +7668,7 @@
           },
           "AwayTeamAggregateScore": null,
           "AwayTeamPenaltyScore": null,
-          "AwayTeamScore": null,
+          "AwayTeamScore": 1,
           "Date": "2026-07-01T16:00:00Z",
           "HomeTeam": {
             "Abbreviation": "ENG",
@@ -7679,10 +7679,10 @@
             "IdCountry": "ENG",
             "IdTeam": "43942",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/ENG",
-            "Score": null,
+            "Score": 2,
             "ShortClubName": "England",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-2-3-1",
             "TeamName": [
               {
                 "Description": "England",
@@ -7693,19 +7693,19 @@
           },
           "HomeTeamAggregateScore": null,
           "HomeTeamPenaltyScore": null,
-          "HomeTeamScore": null,
+          "HomeTeamScore": 2,
           "IdGroup": null,
           "IdMatch": "400021512",
           "IdSeason": "285023",
           "IdStage": "289287",
           "LocalDate": "2026-07-01T12:00:00Z",
           "MatchNumber": 80,
-          "MatchStatus": 1,
-          "MatchTime": null,
-          "MatchTimeStatus": 0,
+          "MatchStatus": 0,
+          "MatchTime": "97'",
+          "MatchTimeStatus": 10,
           "PlaceHolderA": "1L",
           "PlaceHolderB": "3EHIJK",
-          "ResultType": 0,
+          "ResultType": 1,
           "Stadium": {
             "AffiliationCountry": null,
             "AffiliationRegion": null,
@@ -7746,7 +7746,7 @@
           "TeamA": null,
           "TeamB": null,
           "TimeDefined": true,
-          "Winner": null
+          "Winner": "43942"
         },
         {
           "AwayTeam": {
@@ -7758,10 +7758,10 @@
             "IdCountry": "PAR",
             "IdTeam": "43928",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/PAR",
-            "Score": null,
+            "Score": 1,
             "ShortClubName": "Paraguay",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-4-2",
             "TeamName": [
               {
                 "Description": "Paraguay",
@@ -7771,8 +7771,8 @@
             "TeamType": 1
           },
           "AwayTeamAggregateScore": null,
-          "AwayTeamPenaltyScore": null,
-          "AwayTeamScore": null,
+          "AwayTeamPenaltyScore": 4,
+          "AwayTeamScore": 1,
           "Date": "2026-06-29T20:30:00Z",
           "HomeTeam": {
             "Abbreviation": "GER",
@@ -7783,10 +7783,10 @@
             "IdCountry": "GER",
             "IdTeam": "43948",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/GER",
-            "Score": null,
+            "Score": 1,
             "ShortClubName": "Germany",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-2-3-1",
             "TeamName": [
               {
                 "Description": "Germany",
@@ -7796,20 +7796,20 @@
             "TeamType": 1
           },
           "HomeTeamAggregateScore": null,
-          "HomeTeamPenaltyScore": null,
-          "HomeTeamScore": null,
+          "HomeTeamPenaltyScore": 3,
+          "HomeTeamScore": 1,
           "IdGroup": null,
           "IdMatch": "400021513",
           "IdSeason": "285023",
           "IdStage": "289287",
           "LocalDate": "2026-06-29T16:30:00Z",
           "MatchNumber": 74,
-          "MatchStatus": 1,
-          "MatchTime": null,
-          "MatchTimeStatus": 0,
+          "MatchStatus": 0,
+          "MatchTime": "132'",
+          "MatchTimeStatus": 10,
           "PlaceHolderA": "1E",
           "PlaceHolderB": "3ABCDF",
-          "ResultType": 0,
+          "ResultType": 2,
           "Stadium": {
             "AffiliationCountry": null,
             "AffiliationRegion": null,
@@ -7850,7 +7850,7 @@
           "TeamA": null,
           "TeamB": null,
           "TimeDefined": true,
-          "Winner": null
+          "Winner": "43928"
         },
         {
           "AwayTeam": {
@@ -7862,10 +7862,10 @@
             "IdCountry": "NOR",
             "IdTeam": "43961",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/NOR",
-            "Score": null,
+            "Score": 2,
             "ShortClubName": "Norway",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-2-1-3",
             "TeamName": [
               {
                 "Description": "Norway",
@@ -7876,7 +7876,7 @@
           },
           "AwayTeamAggregateScore": null,
           "AwayTeamPenaltyScore": null,
-          "AwayTeamScore": null,
+          "AwayTeamScore": 2,
           "Date": "2026-06-30T17:00:00Z",
           "HomeTeam": {
             "Abbreviation": "CIV",
@@ -7887,10 +7887,10 @@
             "IdCountry": "CIV",
             "IdTeam": "43854",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/CIV",
-            "Score": null,
+            "Score": 1,
             "ShortClubName": "C\u00f4te d'Ivoire",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-1-2-3",
             "TeamName": [
               {
                 "Description": "C\u00f4te d'Ivoire",
@@ -7901,19 +7901,19 @@
           },
           "HomeTeamAggregateScore": null,
           "HomeTeamPenaltyScore": null,
-          "HomeTeamScore": null,
+          "HomeTeamScore": 1,
           "IdGroup": null,
           "IdMatch": "400021514",
           "IdSeason": "285023",
           "IdStage": "289287",
           "LocalDate": "2026-06-30T12:00:00Z",
           "MatchNumber": 78,
-          "MatchStatus": 1,
-          "MatchTime": null,
-          "MatchTimeStatus": 0,
+          "MatchStatus": 0,
+          "MatchTime": "98'",
+          "MatchTimeStatus": 10,
           "PlaceHolderA": "2E",
           "PlaceHolderB": "2I",
-          "ResultType": 0,
+          "ResultType": 1,
           "Stadium": {
             "AffiliationCountry": null,
             "AffiliationRegion": null,
@@ -7954,7 +7954,7 @@
           "TeamA": null,
           "TeamB": null,
           "TimeDefined": true,
-          "Winner": null
+          "Winner": "43961"
         },
         {
           "AwayTeam": {
@@ -7966,10 +7966,10 @@
             "IdCountry": "EGY",
             "IdTeam": "43855",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/EGY",
-            "Score": null,
+            "Score": 1,
             "ShortClubName": "Egypt",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-4-2",
             "TeamName": [
               {
                 "Description": "Egypt",
@@ -7979,8 +7979,8 @@
             "TeamType": 1
           },
           "AwayTeamAggregateScore": null,
-          "AwayTeamPenaltyScore": null,
-          "AwayTeamScore": null,
+          "AwayTeamPenaltyScore": 4,
+          "AwayTeamScore": 1,
           "Date": "2026-07-03T18:00:00Z",
           "HomeTeam": {
             "Abbreviation": "AUS",
@@ -7991,10 +7991,10 @@
             "IdCountry": "AUS",
             "IdTeam": "43976",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/AUS",
-            "Score": null,
+            "Score": 1,
             "ShortClubName": "Australia",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "3-4-3",
             "TeamName": [
               {
                 "Description": "Australia",
@@ -8004,20 +8004,20 @@
             "TeamType": 1
           },
           "HomeTeamAggregateScore": null,
-          "HomeTeamPenaltyScore": null,
-          "HomeTeamScore": null,
+          "HomeTeamPenaltyScore": 2,
+          "HomeTeamScore": 1,
           "IdGroup": null,
           "IdMatch": "400021515",
           "IdSeason": "285023",
           "IdStage": "289287",
           "LocalDate": "2026-07-03T13:00:00Z",
           "MatchNumber": 88,
-          "MatchStatus": 1,
-          "MatchTime": null,
-          "MatchTimeStatus": 0,
+          "MatchStatus": 0,
+          "MatchTime": "129'",
+          "MatchTimeStatus": 10,
           "PlaceHolderA": "2D",
           "PlaceHolderB": "2G",
-          "ResultType": 0,
+          "ResultType": 2,
           "Stadium": {
             "AffiliationCountry": null,
             "AffiliationRegion": null,
@@ -8058,7 +8058,7 @@
           "TeamA": null,
           "TeamB": null,
           "TimeDefined": true,
-          "Winner": null
+          "Winner": "43855"
         },
         {
           "AwayTeam": {
@@ -8070,10 +8070,10 @@
             "IdCountry": "JPN",
             "IdTeam": "43819",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/JPN",
-            "Score": null,
+            "Score": 1,
             "ShortClubName": "Japan",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "3-4-3",
             "TeamName": [
               {
                 "Description": "Japan",
@@ -8084,7 +8084,7 @@
           },
           "AwayTeamAggregateScore": null,
           "AwayTeamPenaltyScore": null,
-          "AwayTeamScore": null,
+          "AwayTeamScore": 1,
           "Date": "2026-06-29T17:00:00Z",
           "HomeTeam": {
             "Abbreviation": "BRA",
@@ -8095,10 +8095,10 @@
             "IdCountry": "BRA",
             "IdTeam": "43924",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/BRA",
-            "Score": null,
+            "Score": 2,
             "ShortClubName": "Brazil",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-1-2-3",
             "TeamName": [
               {
                 "Description": "Brazil",
@@ -8109,19 +8109,19 @@
           },
           "HomeTeamAggregateScore": null,
           "HomeTeamPenaltyScore": null,
-          "HomeTeamScore": null,
+          "HomeTeamScore": 2,
           "IdGroup": null,
           "IdMatch": "400021516",
           "IdSeason": "285023",
           "IdStage": "289287",
           "LocalDate": "2026-06-29T12:00:00Z",
           "MatchNumber": 76,
-          "MatchStatus": 1,
-          "MatchTime": null,
-          "MatchTimeStatus": 0,
+          "MatchStatus": 0,
+          "MatchTime": "101'",
+          "MatchTimeStatus": 10,
           "PlaceHolderA": "1C",
           "PlaceHolderB": "2F",
-          "ResultType": 0,
+          "ResultType": 1,
           "Stadium": {
             "AffiliationCountry": null,
             "AffiliationRegion": null,
@@ -8162,7 +8162,7 @@
           "TeamA": null,
           "TeamB": null,
           "TimeDefined": true,
-          "Winner": null
+          "Winner": "43924"
         },
         {
           "AwayTeam": {
@@ -8174,10 +8174,10 @@
             "IdCountry": "GHA",
             "IdTeam": "43860",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/GHA",
-            "Score": null,
+            "Score": 0,
             "ShortClubName": "Ghana",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-1-2-3",
             "TeamName": [
               {
                 "Description": "Ghana",
@@ -8188,7 +8188,7 @@
           },
           "AwayTeamAggregateScore": null,
           "AwayTeamPenaltyScore": null,
-          "AwayTeamScore": null,
+          "AwayTeamScore": 0,
           "Date": "2026-07-04T01:30:00Z",
           "HomeTeam": {
             "Abbreviation": "COL",
@@ -8199,10 +8199,10 @@
             "IdCountry": "COL",
             "IdTeam": "43926",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/COL",
-            "Score": null,
+            "Score": 1,
             "ShortClubName": "Colombia",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-1-2-3",
             "TeamName": [
               {
                 "Description": "Colombia",
@@ -8213,19 +8213,19 @@
           },
           "HomeTeamAggregateScore": null,
           "HomeTeamPenaltyScore": null,
-          "HomeTeamScore": null,
+          "HomeTeamScore": 1,
           "IdGroup": null,
           "IdMatch": "400021517",
           "IdSeason": "285023",
           "IdStage": "289287",
           "LocalDate": "2026-07-03T20:30:00Z",
           "MatchNumber": 87,
-          "MatchStatus": 1,
-          "MatchTime": null,
-          "MatchTimeStatus": 0,
+          "MatchStatus": 0,
+          "MatchTime": "98'",
+          "MatchTimeStatus": 10,
           "PlaceHolderA": "1K",
           "PlaceHolderB": "3DEIJL",
-          "ResultType": 0,
+          "ResultType": 1,
           "Stadium": {
             "AffiliationCountry": null,
             "AffiliationRegion": null,
@@ -8266,7 +8266,7 @@
           "TeamA": null,
           "TeamB": null,
           "TimeDefined": true,
-          "Winner": null
+          "Winner": "43926"
         },
         {
           "AwayTeam": {
@@ -8382,10 +8382,10 @@
             "IdCountry": "AUT",
             "IdTeam": "43934",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/AUT",
-            "Score": null,
+            "Score": 0,
             "ShortClubName": "Austria",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-2-3-1",
             "TeamName": [
               {
                 "Description": "Austria",
@@ -8396,7 +8396,7 @@
           },
           "AwayTeamAggregateScore": null,
           "AwayTeamPenaltyScore": null,
-          "AwayTeamScore": null,
+          "AwayTeamScore": 0,
           "Date": "2026-07-02T19:00:00Z",
           "HomeTeam": {
             "Abbreviation": "ESP",
@@ -8407,10 +8407,10 @@
             "IdCountry": "ESP",
             "IdTeam": "43969",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/ESP",
-            "Score": null,
+            "Score": 3,
             "ShortClubName": "Spain",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-1-2-3",
             "TeamName": [
               {
                 "Description": "Spain",
@@ -8421,19 +8421,19 @@
           },
           "HomeTeamAggregateScore": null,
           "HomeTeamPenaltyScore": null,
-          "HomeTeamScore": null,
+          "HomeTeamScore": 3,
           "IdGroup": null,
           "IdMatch": "400021519",
           "IdSeason": "285023",
           "IdStage": "289287",
           "LocalDate": "2026-07-02T12:00:00Z",
           "MatchNumber": 84,
-          "MatchStatus": 1,
-          "MatchTime": null,
-          "MatchTimeStatus": 0,
+          "MatchStatus": 0,
+          "MatchTime": "97'",
+          "MatchTimeStatus": 10,
           "PlaceHolderA": "1H",
           "PlaceHolderB": "2J",
-          "ResultType": 0,
+          "ResultType": 1,
           "Stadium": {
             "AffiliationCountry": null,
             "AffiliationRegion": null,
@@ -8474,7 +8474,7 @@
           "TeamA": null,
           "TeamB": null,
           "TimeDefined": true,
-          "Winner": null
+          "Winner": "43969"
         },
         {
           "AwayTeam": {
@@ -8486,10 +8486,10 @@
             "IdCountry": "ECU",
             "IdTeam": "43927",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/ECU",
-            "Score": null,
+            "Score": 0,
             "ShortClubName": "Ecuador",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-4-2",
             "TeamName": [
               {
                 "Description": "Ecuador",
@@ -8500,8 +8500,8 @@
           },
           "AwayTeamAggregateScore": null,
           "AwayTeamPenaltyScore": null,
-          "AwayTeamScore": null,
-          "Date": "2026-07-01T01:00:00Z",
+          "AwayTeamScore": 0,
+          "Date": "2026-07-01T02:00:00Z",
           "HomeTeam": {
             "Abbreviation": "MEX",
             "AgeType": 7,
@@ -8511,10 +8511,10 @@
             "IdCountry": "MEX",
             "IdTeam": "43911",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/MEX",
-            "Score": null,
+            "Score": 2,
             "ShortClubName": "Mexico",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-1-2-3",
             "TeamName": [
               {
                 "Description": "Mexico",
@@ -8525,19 +8525,19 @@
           },
           "HomeTeamAggregateScore": null,
           "HomeTeamPenaltyScore": null,
-          "HomeTeamScore": null,
+          "HomeTeamScore": 2,
           "IdGroup": null,
           "IdMatch": "400021520",
           "IdSeason": "285023",
           "IdStage": "289287",
-          "LocalDate": "2026-06-30T19:00:00Z",
+          "LocalDate": "2026-06-30T20:00:00Z",
           "MatchNumber": 79,
-          "MatchStatus": 1,
-          "MatchTime": null,
-          "MatchTimeStatus": 0,
+          "MatchStatus": 0,
+          "MatchTime": "99'",
+          "MatchTimeStatus": 10,
           "PlaceHolderA": "1A",
           "PlaceHolderB": "3CEFHI",
-          "ResultType": 0,
+          "ResultType": 1,
           "Stadium": {
             "AffiliationCountry": null,
             "AffiliationRegion": null,
@@ -8578,7 +8578,7 @@
           "TeamA": null,
           "TeamB": null,
           "TimeDefined": true,
-          "Winner": null
+          "Winner": "43911"
         },
         {
           "AwayTeam": {
@@ -8590,10 +8590,10 @@
             "IdCountry": "CPV",
             "IdTeam": "43850",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/CPV",
-            "Score": null,
+            "Score": 2,
             "ShortClubName": "Cabo Verde",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-1-4-1",
             "TeamName": [
               {
                 "Description": "Cabo Verde",
@@ -8604,7 +8604,7 @@
           },
           "AwayTeamAggregateScore": null,
           "AwayTeamPenaltyScore": null,
-          "AwayTeamScore": null,
+          "AwayTeamScore": 2,
           "Date": "2026-07-03T22:00:00Z",
           "HomeTeam": {
             "Abbreviation": "ARG",
@@ -8615,10 +8615,10 @@
             "IdCountry": "ARG",
             "IdTeam": "43922",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/ARG",
-            "Score": null,
+            "Score": 3,
             "ShortClubName": "Argentina",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-4-2",
             "TeamName": [
               {
                 "Description": "Argentina",
@@ -8629,19 +8629,19 @@
           },
           "HomeTeamAggregateScore": null,
           "HomeTeamPenaltyScore": null,
-          "HomeTeamScore": null,
+          "HomeTeamScore": 3,
           "IdGroup": null,
           "IdMatch": "400021521",
           "IdSeason": "285023",
           "IdStage": "289287",
           "LocalDate": "2026-07-03T18:00:00Z",
           "MatchNumber": 86,
-          "MatchStatus": 1,
-          "MatchTime": null,
-          "MatchTimeStatus": 0,
+          "MatchStatus": 0,
+          "MatchTime": "124'",
+          "MatchTimeStatus": 10,
           "PlaceHolderA": "1J",
           "PlaceHolderB": "2H",
-          "ResultType": 0,
+          "ResultType": 3,
           "Stadium": {
             "AffiliationCountry": null,
             "AffiliationRegion": null,
@@ -8682,7 +8682,7 @@
           "TeamA": null,
           "TeamB": null,
           "TimeDefined": true,
-          "Winner": null
+          "Winner": "43922"
         },
         {
           "AwayTeam": {
@@ -8694,10 +8694,10 @@
             "IdCountry": "MAR",
             "IdTeam": "43872",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/MAR",
-            "Score": null,
+            "Score": 1,
             "ShortClubName": "Morocco",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-2-3-1",
             "TeamName": [
               {
                 "Description": "Morocco",
@@ -8707,8 +8707,8 @@
             "TeamType": 1
           },
           "AwayTeamAggregateScore": null,
-          "AwayTeamPenaltyScore": null,
-          "AwayTeamScore": null,
+          "AwayTeamPenaltyScore": 3,
+          "AwayTeamScore": 1,
           "Date": "2026-06-30T01:00:00Z",
           "HomeTeam": {
             "Abbreviation": "NED",
@@ -8719,10 +8719,10 @@
             "IdCountry": "NED",
             "IdTeam": "43960",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/NED",
-            "Score": null,
+            "Score": 1,
             "ShortClubName": "Netherlands",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "3-4-3",
             "TeamName": [
               {
                 "Description": "Netherlands",
@@ -8732,20 +8732,20 @@
             "TeamType": 1
           },
           "HomeTeamAggregateScore": null,
-          "HomeTeamPenaltyScore": null,
-          "HomeTeamScore": null,
+          "HomeTeamPenaltyScore": 2,
+          "HomeTeamScore": 1,
           "IdGroup": null,
           "IdMatch": "400021522",
           "IdSeason": "285023",
           "IdStage": "289287",
           "LocalDate": "2026-06-29T19:00:00Z",
           "MatchNumber": 75,
-          "MatchStatus": 1,
-          "MatchTime": null,
-          "MatchTimeStatus": 0,
+          "MatchStatus": 0,
+          "MatchTime": "130'",
+          "MatchTimeStatus": 10,
           "PlaceHolderA": "1F",
           "PlaceHolderB": "2C",
-          "ResultType": 0,
+          "ResultType": 2,
           "Stadium": {
             "AffiliationCountry": null,
             "AffiliationRegion": null,
@@ -8786,7 +8786,7 @@
           "TeamA": null,
           "TeamB": null,
           "TimeDefined": true,
-          "Winner": null
+          "Winner": "43872"
         },
         {
           "AwayTeam": {
@@ -8798,10 +8798,10 @@
             "IdCountry": "SWE",
             "IdTeam": "43970",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/SWE",
-            "Score": null,
+            "Score": 0,
             "ShortClubName": "Sweden",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-4-2",
             "TeamName": [
               {
                 "Description": "Sweden",
@@ -8812,7 +8812,7 @@
           },
           "AwayTeamAggregateScore": null,
           "AwayTeamPenaltyScore": null,
-          "AwayTeamScore": null,
+          "AwayTeamScore": 0,
           "Date": "2026-06-30T21:00:00Z",
           "HomeTeam": {
             "Abbreviation": "FRA",
@@ -8823,10 +8823,10 @@
             "IdCountry": "FRA",
             "IdTeam": "43946",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/FRA",
-            "Score": null,
+            "Score": 3,
             "ShortClubName": "France",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-2-3-1",
             "TeamName": [
               {
                 "Description": "France",
@@ -8837,19 +8837,19 @@
           },
           "HomeTeamAggregateScore": null,
           "HomeTeamPenaltyScore": null,
-          "HomeTeamScore": null,
+          "HomeTeamScore": 3,
           "IdGroup": null,
           "IdMatch": "400021523",
           "IdSeason": "285023",
           "IdStage": "289287",
           "LocalDate": "2026-06-30T17:00:00Z",
           "MatchNumber": 77,
-          "MatchStatus": 1,
-          "MatchTime": null,
-          "MatchTimeStatus": 0,
+          "MatchStatus": 0,
+          "MatchTime": "95'",
+          "MatchTimeStatus": 10,
           "PlaceHolderA": "1I",
           "PlaceHolderB": "3CDFGH",
-          "ResultType": 0,
+          "ResultType": 1,
           "Stadium": {
             "AffiliationCountry": null,
             "AffiliationRegion": null,
@@ -8890,7 +8890,7 @@
           "TeamA": null,
           "TeamB": null,
           "TimeDefined": true,
-          "Winner": null
+          "Winner": "43946"
         },
         {
           "AwayTeam": {
@@ -8902,10 +8902,10 @@
             "IdCountry": "BIH",
             "IdTeam": "44037",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/BIH",
-            "Score": null,
+            "Score": 0,
             "ShortClubName": "Bosnia and Herzegovina",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-4-2",
             "TeamName": [
               {
                 "Description": "Bosnia and Herzegovina",
@@ -8916,7 +8916,7 @@
           },
           "AwayTeamAggregateScore": null,
           "AwayTeamPenaltyScore": null,
-          "AwayTeamScore": null,
+          "AwayTeamScore": 0,
           "Date": "2026-07-02T00:00:00Z",
           "HomeTeam": {
             "Abbreviation": "USA",
@@ -8927,10 +8927,10 @@
             "IdCountry": "USA",
             "IdTeam": "43921",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/USA",
-            "Score": null,
+            "Score": 2,
             "ShortClubName": "USA",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "3-5-2",
             "TeamName": [
               {
                 "Description": "USA",
@@ -8941,19 +8941,19 @@
           },
           "HomeTeamAggregateScore": null,
           "HomeTeamPenaltyScore": null,
-          "HomeTeamScore": null,
+          "HomeTeamScore": 2,
           "IdGroup": null,
           "IdMatch": "400021524",
           "IdSeason": "285023",
           "IdStage": "289287",
           "LocalDate": "2026-07-01T17:00:00Z",
           "MatchNumber": 81,
-          "MatchStatus": 1,
-          "MatchTime": null,
-          "MatchTimeStatus": 0,
+          "MatchStatus": 0,
+          "MatchTime": "101'",
+          "MatchTimeStatus": 10,
           "PlaceHolderA": "1D",
           "PlaceHolderB": "3BEFIJ",
-          "ResultType": 0,
+          "ResultType": 1,
           "Stadium": {
             "AffiliationCountry": null,
             "AffiliationRegion": null,
@@ -8994,7 +8994,7 @@
           "TeamA": null,
           "TeamB": null,
           "TimeDefined": true,
-          "Winner": null
+          "Winner": "43921"
         },
         {
           "AwayTeam": {
@@ -9006,10 +9006,10 @@
             "IdCountry": "SEN",
             "IdTeam": "43879",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/SEN",
-            "Score": null,
+            "Score": 2,
             "ShortClubName": "Senegal",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-3-3",
             "TeamName": [
               {
                 "Description": "Senegal",
@@ -9020,7 +9020,7 @@
           },
           "AwayTeamAggregateScore": null,
           "AwayTeamPenaltyScore": null,
-          "AwayTeamScore": null,
+          "AwayTeamScore": 2,
           "Date": "2026-07-01T20:00:00Z",
           "HomeTeam": {
             "Abbreviation": "BEL",
@@ -9031,10 +9031,10 @@
             "IdCountry": "BEL",
             "IdTeam": "43935",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/BEL",
-            "Score": null,
+            "Score": 3,
             "ShortClubName": "Belgium",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-2-3-1",
             "TeamName": [
               {
                 "Description": "Belgium",
@@ -9045,19 +9045,19 @@
           },
           "HomeTeamAggregateScore": null,
           "HomeTeamPenaltyScore": null,
-          "HomeTeamScore": null,
+          "HomeTeamScore": 3,
           "IdGroup": null,
           "IdMatch": "400021525",
           "IdSeason": "285023",
           "IdStage": "289287",
           "LocalDate": "2026-07-01T13:00:00Z",
           "MatchNumber": 82,
-          "MatchStatus": 1,
-          "MatchTime": null,
-          "MatchTimeStatus": 0,
+          "MatchStatus": 0,
+          "MatchTime": "132'",
+          "MatchTimeStatus": 10,
           "PlaceHolderA": "1G",
           "PlaceHolderB": "3AEHIJ",
-          "ResultType": 0,
+          "ResultType": 3,
           "Stadium": {
             "AffiliationCountry": null,
             "AffiliationRegion": null,
@@ -9098,7 +9098,7 @@
           "TeamA": null,
           "TeamB": null,
           "TimeDefined": true,
-          "Winner": null
+          "Winner": "43935"
         },
         {
           "AwayTeam": {
@@ -9110,10 +9110,10 @@
             "IdCountry": "CRO",
             "IdTeam": "43938",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/CRO",
-            "Score": null,
+            "Score": 1,
             "ShortClubName": "Croatia",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-2-3-1",
             "TeamName": [
               {
                 "Description": "Croatia",
@@ -9124,7 +9124,7 @@
           },
           "AwayTeamAggregateScore": null,
           "AwayTeamPenaltyScore": null,
-          "AwayTeamScore": null,
+          "AwayTeamScore": 1,
           "Date": "2026-07-02T23:00:00Z",
           "HomeTeam": {
             "Abbreviation": "POR",
@@ -9135,10 +9135,10 @@
             "IdCountry": "POR",
             "IdTeam": "43963",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/POR",
-            "Score": null,
+            "Score": 2,
             "ShortClubName": "Portugal",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-2-3-1",
             "TeamName": [
               {
                 "Description": "Portugal",
@@ -9149,19 +9149,19 @@
           },
           "HomeTeamAggregateScore": null,
           "HomeTeamPenaltyScore": null,
-          "HomeTeamScore": null,
+          "HomeTeamScore": 2,
           "IdGroup": null,
           "IdMatch": "400021526",
           "IdSeason": "285023",
           "IdStage": "289287",
           "LocalDate": "2026-07-02T19:00:00Z",
           "MatchNumber": 83,
-          "MatchStatus": 1,
-          "MatchTime": null,
-          "MatchTimeStatus": 0,
+          "MatchStatus": 0,
+          "MatchTime": "109'",
+          "MatchTimeStatus": 10,
           "PlaceHolderA": "2K",
           "PlaceHolderB": "2L",
-          "ResultType": 0,
+          "ResultType": 1,
           "Stadium": {
             "AffiliationCountry": null,
             "AffiliationRegion": null,
@@ -9202,7 +9202,7 @@
           "TeamA": null,
           "TeamB": null,
           "TimeDefined": true,
-          "Winner": null
+          "Winner": "43963"
         },
         {
           "AwayTeam": {
@@ -9214,10 +9214,10 @@
             "IdCountry": "ALG",
             "IdTeam": "43843",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/ALG",
-            "Score": null,
+            "Score": 0,
             "ShortClubName": "Algeria",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-1-2-3",
             "TeamName": [
               {
                 "Description": "Algeria",
@@ -9228,7 +9228,7 @@
           },
           "AwayTeamAggregateScore": null,
           "AwayTeamPenaltyScore": null,
-          "AwayTeamScore": null,
+          "AwayTeamScore": 0,
           "Date": "2026-07-03T03:00:00Z",
           "HomeTeam": {
             "Abbreviation": "SUI",
@@ -9239,10 +9239,10 @@
             "IdCountry": "SUI",
             "IdTeam": "43971",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/SUI",
-            "Score": null,
+            "Score": 2,
             "ShortClubName": "Switzerland",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-2-3-1",
             "TeamName": [
               {
                 "Description": "Switzerland",
@@ -9253,19 +9253,19 @@
           },
           "HomeTeamAggregateScore": null,
           "HomeTeamPenaltyScore": null,
-          "HomeTeamScore": null,
+          "HomeTeamScore": 2,
           "IdGroup": null,
           "IdMatch": "400021527",
           "IdSeason": "285023",
           "IdStage": "289287",
           "LocalDate": "2026-07-02T20:00:00Z",
           "MatchNumber": 85,
-          "MatchStatus": 1,
-          "MatchTime": null,
-          "MatchTimeStatus": 0,
+          "MatchStatus": 0,
+          "MatchTime": "97'",
+          "MatchTimeStatus": 10,
           "PlaceHolderA": "1B",
           "PlaceHolderB": "3EFGIJ",
-          "ResultType": 0,
+          "ResultType": 1,
           "Stadium": {
             "AffiliationCountry": null,
             "AffiliationRegion": null,
@@ -9306,7 +9306,7 @@
           "TeamA": null,
           "TeamB": null,
           "TimeDefined": true,
-          "Winner": null
+          "Winner": "43971"
         }
       ],
       "Name": [
@@ -9322,27 +9322,67 @@
       "IdStage": "289288",
       "Matches": [
         {
-          "AwayTeam": null,
+          "AwayTeam": {
+            "Abbreviation": "EGY",
+            "AgeType": 7,
+            "FootballType": 0,
+            "Gender": 1,
+            "IdAssociation": "EGY",
+            "IdCountry": "EGY",
+            "IdTeam": "43855",
+            "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/EGY",
+            "Score": 2,
+            "ShortClubName": "Egypt",
+            "Side": null,
+            "Tactics": "4-2-3-1",
+            "TeamName": [
+              {
+                "Description": "Egypt",
+                "Locale": "en-GB"
+              }
+            ],
+            "TeamType": 1
+          },
           "AwayTeamAggregateScore": null,
           "AwayTeamPenaltyScore": null,
-          "AwayTeamScore": null,
+          "AwayTeamScore": 2,
           "Date": "2026-07-07T16:00:00Z",
-          "HomeTeam": null,
+          "HomeTeam": {
+            "Abbreviation": "ARG",
+            "AgeType": 7,
+            "FootballType": 0,
+            "Gender": 1,
+            "IdAssociation": "ARG",
+            "IdCountry": "ARG",
+            "IdTeam": "43922",
+            "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/ARG",
+            "Score": 3,
+            "ShortClubName": "Argentina",
+            "Side": null,
+            "Tactics": "4-1-3-2",
+            "TeamName": [
+              {
+                "Description": "Argentina",
+                "Locale": "en-GB"
+              }
+            ],
+            "TeamType": 1
+          },
           "HomeTeamAggregateScore": null,
           "HomeTeamPenaltyScore": null,
-          "HomeTeamScore": null,
+          "HomeTeamScore": 3,
           "IdGroup": null,
           "IdMatch": "400021528",
           "IdSeason": "285023",
           "IdStage": "289288",
           "LocalDate": "2026-07-07T12:00:00Z",
           "MatchNumber": 95,
-          "MatchStatus": 1,
-          "MatchTime": null,
-          "MatchTimeStatus": 0,
+          "MatchStatus": 0,
+          "MatchTime": "102'",
+          "MatchTimeStatus": 10,
           "PlaceHolderA": "W86",
           "PlaceHolderB": "W88",
-          "ResultType": 0,
+          "ResultType": 1,
           "Stadium": {
             "AffiliationCountry": null,
             "AffiliationRegion": null,
@@ -9383,30 +9423,70 @@
           "TeamA": "400021521",
           "TeamB": "400021515",
           "TimeDefined": true,
-          "Winner": null
+          "Winner": "43922"
         },
         {
-          "AwayTeam": null,
+          "AwayTeam": {
+            "Abbreviation": "ESP",
+            "AgeType": 7,
+            "FootballType": 0,
+            "Gender": 1,
+            "IdAssociation": "ESP",
+            "IdCountry": "ESP",
+            "IdTeam": "43969",
+            "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/ESP",
+            "Score": 1,
+            "ShortClubName": "Spain",
+            "Side": null,
+            "Tactics": "4-1-2-3",
+            "TeamName": [
+              {
+                "Description": "Spain",
+                "Locale": "en-GB"
+              }
+            ],
+            "TeamType": 1
+          },
           "AwayTeamAggregateScore": null,
           "AwayTeamPenaltyScore": null,
-          "AwayTeamScore": null,
+          "AwayTeamScore": 1,
           "Date": "2026-07-06T19:00:00Z",
-          "HomeTeam": null,
+          "HomeTeam": {
+            "Abbreviation": "POR",
+            "AgeType": 7,
+            "FootballType": 0,
+            "Gender": 1,
+            "IdAssociation": "POR",
+            "IdCountry": "POR",
+            "IdTeam": "43963",
+            "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/POR",
+            "Score": 0,
+            "ShortClubName": "Portugal",
+            "Side": null,
+            "Tactics": "4-2-3-1",
+            "TeamName": [
+              {
+                "Description": "Portugal",
+                "Locale": "en-GB"
+              }
+            ],
+            "TeamType": 1
+          },
           "HomeTeamAggregateScore": null,
           "HomeTeamPenaltyScore": null,
-          "HomeTeamScore": null,
+          "HomeTeamScore": 0,
           "IdGroup": null,
           "IdMatch": "400021529",
           "IdSeason": "285023",
           "IdStage": "289288",
           "LocalDate": "2026-07-06T14:00:00Z",
           "MatchNumber": 93,
-          "MatchStatus": 1,
-          "MatchTime": null,
-          "MatchTimeStatus": 0,
+          "MatchStatus": 0,
+          "MatchTime": "99'",
+          "MatchTimeStatus": 10,
           "PlaceHolderA": "W83",
           "PlaceHolderB": "W84",
-          "ResultType": 0,
+          "ResultType": 1,
           "Stadium": {
             "AffiliationCountry": null,
             "AffiliationRegion": null,
@@ -9447,13 +9527,33 @@
           "TeamA": "400021526",
           "TeamB": "400021519",
           "TimeDefined": true,
-          "Winner": null
+          "Winner": "43969"
         },
         {
-          "AwayTeam": null,
+          "AwayTeam": {
+            "Abbreviation": "MAR",
+            "AgeType": 7,
+            "FootballType": 0,
+            "Gender": 1,
+            "IdAssociation": "MAR",
+            "IdCountry": "MAR",
+            "IdTeam": "43872",
+            "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/MAR",
+            "Score": 3,
+            "ShortClubName": "Morocco",
+            "Side": null,
+            "Tactics": "4-2-3-1",
+            "TeamName": [
+              {
+                "Description": "Morocco",
+                "Locale": "en-GB"
+              }
+            ],
+            "TeamType": 1
+          },
           "AwayTeamAggregateScore": null,
           "AwayTeamPenaltyScore": null,
-          "AwayTeamScore": null,
+          "AwayTeamScore": 3,
           "Date": "2026-07-04T17:00:00Z",
           "HomeTeam": {
             "Abbreviation": "CAN",
@@ -9464,10 +9564,10 @@
             "IdCountry": "CAN",
             "IdTeam": "43899",
             "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/CAN",
-            "Score": null,
+            "Score": 0,
             "ShortClubName": "Canada",
             "Side": null,
-            "Tactics": null,
+            "Tactics": "4-4-2",
             "TeamName": [
               {
                 "Description": "Canada",
@@ -9478,19 +9578,19 @@
           },
           "HomeTeamAggregateScore": null,
           "HomeTeamPenaltyScore": null,
-          "HomeTeamScore": null,
+          "HomeTeamScore": 0,
           "IdGroup": null,
           "IdMatch": "400021530",
           "IdSeason": "285023",
           "IdStage": "289288",
           "LocalDate": "2026-07-04T12:00:00Z",
           "MatchNumber": 90,
-          "MatchStatus": 1,
-          "MatchTime": null,
-          "MatchTimeStatus": 0,
+          "MatchStatus": 0,
+          "MatchTime": "100'",
+          "MatchTimeStatus": 10,
           "PlaceHolderA": "W73",
           "PlaceHolderB": "W75",
-          "ResultType": 0,
+          "ResultType": 1,
           "Stadium": {
             "AffiliationCountry": null,
             "AffiliationRegion": null,
@@ -9531,30 +9631,70 @@
           "TeamA": "400021518",
           "TeamB": "400021522",
           "TimeDefined": true,
-          "Winner": null
+          "Winner": "43872"
         },
         {
-          "AwayTeam": null,
+          "AwayTeam": {
+            "Abbreviation": "ENG",
+            "AgeType": 7,
+            "FootballType": 0,
+            "Gender": 1,
+            "IdAssociation": "ENG",
+            "IdCountry": "ENG",
+            "IdTeam": "43942",
+            "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/ENG",
+            "Score": 3,
+            "ShortClubName": "England",
+            "Side": null,
+            "Tactics": "4-2-3-1",
+            "TeamName": [
+              {
+                "Description": "England",
+                "Locale": "en-GB"
+              }
+            ],
+            "TeamType": 1
+          },
           "AwayTeamAggregateScore": null,
           "AwayTeamPenaltyScore": null,
-          "AwayTeamScore": null,
-          "Date": "2026-07-06T00:00:00Z",
-          "HomeTeam": null,
+          "AwayTeamScore": 3,
+          "Date": "2026-07-06T01:00:00Z",
+          "HomeTeam": {
+            "Abbreviation": "MEX",
+            "AgeType": 7,
+            "FootballType": 0,
+            "Gender": 1,
+            "IdAssociation": "MEX",
+            "IdCountry": "MEX",
+            "IdTeam": "43911",
+            "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/MEX",
+            "Score": 2,
+            "ShortClubName": "Mexico",
+            "Side": null,
+            "Tactics": "4-1-2-3",
+            "TeamName": [
+              {
+                "Description": "Mexico",
+                "Locale": "en-GB"
+              }
+            ],
+            "TeamType": 1
+          },
           "HomeTeamAggregateScore": null,
           "HomeTeamPenaltyScore": null,
-          "HomeTeamScore": null,
+          "HomeTeamScore": 2,
           "IdGroup": null,
           "IdMatch": "400021531",
           "IdSeason": "285023",
           "IdStage": "289288",
-          "LocalDate": "2026-07-05T18:00:00Z",
+          "LocalDate": "2026-07-05T19:00:00Z",
           "MatchNumber": 92,
-          "MatchStatus": 1,
-          "MatchTime": null,
-          "MatchTimeStatus": 0,
+          "MatchStatus": 0,
+          "MatchTime": "103'",
+          "MatchTimeStatus": 10,
           "PlaceHolderA": "W79",
           "PlaceHolderB": "W80",
-          "ResultType": 0,
+          "ResultType": 1,
           "Stadium": {
             "AffiliationCountry": null,
             "AffiliationRegion": null,
@@ -9595,30 +9735,70 @@
           "TeamA": "400021520",
           "TeamB": "400021512",
           "TimeDefined": true,
-          "Winner": null
+          "Winner": "43942"
         },
         {
-          "AwayTeam": null,
+          "AwayTeam": {
+            "Abbreviation": "NOR",
+            "AgeType": 7,
+            "FootballType": 0,
+            "Gender": 1,
+            "IdAssociation": "NOR",
+            "IdCountry": "NOR",
+            "IdTeam": "43961",
+            "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/NOR",
+            "Score": 2,
+            "ShortClubName": "Norway",
+            "Side": null,
+            "Tactics": "4-1-2-3",
+            "TeamName": [
+              {
+                "Description": "Norway",
+                "Locale": "en-GB"
+              }
+            ],
+            "TeamType": 1
+          },
           "AwayTeamAggregateScore": null,
           "AwayTeamPenaltyScore": null,
-          "AwayTeamScore": null,
+          "AwayTeamScore": 2,
           "Date": "2026-07-05T20:00:00Z",
-          "HomeTeam": null,
+          "HomeTeam": {
+            "Abbreviation": "BRA",
+            "AgeType": 7,
+            "FootballType": 0,
+            "Gender": 1,
+            "IdAssociation": "BRA",
+            "IdCountry": "BRA",
+            "IdTeam": "43924",
+            "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/BRA",
+            "Score": 1,
+            "ShortClubName": "Brazil",
+            "Side": null,
+            "Tactics": "4-1-2-3",
+            "TeamName": [
+              {
+                "Description": "Brazil",
+                "Locale": "en-GB"
+              }
+            ],
+            "TeamType": 1
+          },
           "HomeTeamAggregateScore": null,
           "HomeTeamPenaltyScore": null,
-          "HomeTeamScore": null,
+          "HomeTeamScore": 1,
           "IdGroup": null,
           "IdMatch": "400021532",
           "IdSeason": "285023",
           "IdStage": "289288",
           "LocalDate": "2026-07-05T16:00:00Z",
           "MatchNumber": 91,
-          "MatchStatus": 1,
-          "MatchTime": null,
-          "MatchTimeStatus": 0,
+          "MatchStatus": 0,
+          "MatchTime": "102'",
+          "MatchTimeStatus": 10,
           "PlaceHolderA": "W76",
           "PlaceHolderB": "W78",
-          "ResultType": 0,
+          "ResultType": 1,
           "Stadium": {
             "AffiliationCountry": null,
             "AffiliationRegion": null,
@@ -9659,30 +9839,70 @@
           "TeamA": "400021516",
           "TeamB": "400021514",
           "TimeDefined": true,
-          "Winner": null
+          "Winner": "43961"
         },
         {
-          "AwayTeam": null,
+          "AwayTeam": {
+            "Abbreviation": "FRA",
+            "AgeType": 7,
+            "FootballType": 0,
+            "Gender": 1,
+            "IdAssociation": "FRA",
+            "IdCountry": "FRA",
+            "IdTeam": "43946",
+            "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/FRA",
+            "Score": 1,
+            "ShortClubName": "France",
+            "Side": null,
+            "Tactics": "4-2-3-1",
+            "TeamName": [
+              {
+                "Description": "France",
+                "Locale": "en-GB"
+              }
+            ],
+            "TeamType": 1
+          },
           "AwayTeamAggregateScore": null,
           "AwayTeamPenaltyScore": null,
-          "AwayTeamScore": null,
+          "AwayTeamScore": 1,
           "Date": "2026-07-04T21:00:00Z",
-          "HomeTeam": null,
+          "HomeTeam": {
+            "Abbreviation": "PAR",
+            "AgeType": 7,
+            "FootballType": 0,
+            "Gender": 1,
+            "IdAssociation": "PAR",
+            "IdCountry": "PAR",
+            "IdTeam": "43928",
+            "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/PAR",
+            "Score": 0,
+            "ShortClubName": "Paraguay",
+            "Side": null,
+            "Tactics": "5-4-1",
+            "TeamName": [
+              {
+                "Description": "Paraguay",
+                "Locale": "en-GB"
+              }
+            ],
+            "TeamType": 1
+          },
           "HomeTeamAggregateScore": null,
           "HomeTeamPenaltyScore": null,
-          "HomeTeamScore": null,
+          "HomeTeamScore": 0,
           "IdGroup": null,
           "IdMatch": "400021533",
           "IdSeason": "285023",
           "IdStage": "289288",
           "LocalDate": "2026-07-04T17:00:00Z",
           "MatchNumber": 89,
-          "MatchStatus": 1,
-          "MatchTime": null,
-          "MatchTimeStatus": 0,
+          "MatchStatus": 0,
+          "MatchTime": "101'",
+          "MatchTimeStatus": 10,
           "PlaceHolderA": "W74",
           "PlaceHolderB": "W77",
-          "ResultType": 0,
+          "ResultType": 1,
           "Stadium": {
             "AffiliationCountry": null,
             "AffiliationRegion": null,
@@ -9723,30 +9943,70 @@
           "TeamA": "400021513",
           "TeamB": "400021523",
           "TimeDefined": true,
-          "Winner": null
+          "Winner": "43946"
         },
         {
-          "AwayTeam": null,
+          "AwayTeam": {
+            "Abbreviation": "BEL",
+            "AgeType": 7,
+            "FootballType": 0,
+            "Gender": 1,
+            "IdAssociation": "BEL",
+            "IdCountry": "BEL",
+            "IdTeam": "43935",
+            "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/BEL",
+            "Score": 4,
+            "ShortClubName": "Belgium",
+            "Side": null,
+            "Tactics": "4-2-3-1",
+            "TeamName": [
+              {
+                "Description": "Belgium",
+                "Locale": "en-GB"
+              }
+            ],
+            "TeamType": 1
+          },
           "AwayTeamAggregateScore": null,
           "AwayTeamPenaltyScore": null,
-          "AwayTeamScore": null,
+          "AwayTeamScore": 4,
           "Date": "2026-07-07T00:00:00Z",
-          "HomeTeam": null,
+          "HomeTeam": {
+            "Abbreviation": "USA",
+            "AgeType": 7,
+            "FootballType": 0,
+            "Gender": 1,
+            "IdAssociation": "USA",
+            "IdCountry": "USA",
+            "IdTeam": "43921",
+            "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/USA",
+            "Score": 1,
+            "ShortClubName": "USA",
+            "Side": null,
+            "Tactics": "3-5-2",
+            "TeamName": [
+              {
+                "Description": "USA",
+                "Locale": "en-GB"
+              }
+            ],
+            "TeamType": 1
+          },
           "HomeTeamAggregateScore": null,
           "HomeTeamPenaltyScore": null,
-          "HomeTeamScore": null,
+          "HomeTeamScore": 1,
           "IdGroup": null,
           "IdMatch": "400021534",
           "IdSeason": "285023",
           "IdStage": "289288",
           "LocalDate": "2026-07-06T17:00:00Z",
           "MatchNumber": 94,
-          "MatchStatus": 1,
-          "MatchTime": null,
-          "MatchTimeStatus": 0,
+          "MatchStatus": 0,
+          "MatchTime": "95'",
+          "MatchTimeStatus": 10,
           "PlaceHolderA": "W81",
           "PlaceHolderB": "W82",
-          "ResultType": 0,
+          "ResultType": 1,
           "Stadium": {
             "AffiliationCountry": null,
             "AffiliationRegion": null,
@@ -9787,30 +10047,70 @@
           "TeamA": "400021524",
           "TeamB": "400021525",
           "TimeDefined": true,
-          "Winner": null
+          "Winner": "43935"
         },
         {
-          "AwayTeam": null,
+          "AwayTeam": {
+            "Abbreviation": "COL",
+            "AgeType": 7,
+            "FootballType": 0,
+            "Gender": 1,
+            "IdAssociation": "COL",
+            "IdCountry": "COL",
+            "IdTeam": "43926",
+            "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/COL",
+            "Score": 0,
+            "ShortClubName": "Colombia",
+            "Side": null,
+            "Tactics": "4-1-2-3",
+            "TeamName": [
+              {
+                "Description": "Colombia",
+                "Locale": "en-GB"
+              }
+            ],
+            "TeamType": 1
+          },
           "AwayTeamAggregateScore": null,
-          "AwayTeamPenaltyScore": null,
-          "AwayTeamScore": null,
+          "AwayTeamPenaltyScore": 3,
+          "AwayTeamScore": 0,
           "Date": "2026-07-07T20:00:00Z",
-          "HomeTeam": null,
+          "HomeTeam": {
+            "Abbreviation": "SUI",
+            "AgeType": 7,
+            "FootballType": 0,
+            "Gender": 1,
+            "IdAssociation": "SUI",
+            "IdCountry": "SUI",
+            "IdTeam": "43971",
+            "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/SUI",
+            "Score": 0,
+            "ShortClubName": "Switzerland",
+            "Side": null,
+            "Tactics": "4-1-2-3",
+            "TeamName": [
+              {
+                "Description": "Switzerland",
+                "Locale": "en-GB"
+              }
+            ],
+            "TeamType": 1
+          },
           "HomeTeamAggregateScore": null,
-          "HomeTeamPenaltyScore": null,
-          "HomeTeamScore": null,
+          "HomeTeamPenaltyScore": 4,
+          "HomeTeamScore": 0,
           "IdGroup": null,
           "IdMatch": "400021535",
           "IdSeason": "285023",
           "IdStage": "289288",
           "LocalDate": "2026-07-07T13:00:00Z",
           "MatchNumber": 96,
-          "MatchStatus": 1,
-          "MatchTime": null,
-          "MatchTimeStatus": 0,
+          "MatchStatus": 0,
+          "MatchTime": "130'",
+          "MatchTimeStatus": 10,
           "PlaceHolderA": "W85",
           "PlaceHolderB": "W87",
-          "ResultType": 0,
+          "ResultType": 2,
           "Stadium": {
             "AffiliationCountry": null,
             "AffiliationRegion": null,
@@ -9851,7 +10151,7 @@
           "TeamA": "400021527",
           "TeamB": "400021517",
           "TimeDefined": true,
-          "Winner": null
+          "Winner": "43971"
         }
       ],
       "Name": [
@@ -9867,12 +10167,52 @@
       "IdStage": "289289",
       "Matches": [
         {
-          "AwayTeam": null,
+          "AwayTeam": {
+            "Abbreviation": "MAR",
+            "AgeType": 7,
+            "FootballType": 0,
+            "Gender": 1,
+            "IdAssociation": "MAR",
+            "IdCountry": "MAR",
+            "IdTeam": "43872",
+            "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/MAR",
+            "Score": null,
+            "ShortClubName": "Morocco",
+            "Side": null,
+            "Tactics": null,
+            "TeamName": [
+              {
+                "Description": "Morocco",
+                "Locale": "en-GB"
+              }
+            ],
+            "TeamType": 1
+          },
           "AwayTeamAggregateScore": null,
           "AwayTeamPenaltyScore": null,
           "AwayTeamScore": null,
           "Date": "2026-07-09T20:00:00Z",
-          "HomeTeam": null,
+          "HomeTeam": {
+            "Abbreviation": "FRA",
+            "AgeType": 7,
+            "FootballType": 0,
+            "Gender": 1,
+            "IdAssociation": "FRA",
+            "IdCountry": "FRA",
+            "IdTeam": "43946",
+            "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/FRA",
+            "Score": null,
+            "ShortClubName": "France",
+            "Side": null,
+            "Tactics": null,
+            "TeamName": [
+              {
+                "Description": "France",
+                "Locale": "en-GB"
+              }
+            ],
+            "TeamType": 1
+          },
           "HomeTeamAggregateScore": null,
           "HomeTeamPenaltyScore": null,
           "HomeTeamScore": null,
@@ -9931,12 +10271,52 @@
           "Winner": null
         },
         {
-          "AwayTeam": null,
+          "AwayTeam": {
+            "Abbreviation": "SUI",
+            "AgeType": 7,
+            "FootballType": 0,
+            "Gender": 1,
+            "IdAssociation": "SUI",
+            "IdCountry": "SUI",
+            "IdTeam": "43971",
+            "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/SUI",
+            "Score": null,
+            "ShortClubName": "Switzerland",
+            "Side": null,
+            "Tactics": null,
+            "TeamName": [
+              {
+                "Description": "Switzerland",
+                "Locale": "en-GB"
+              }
+            ],
+            "TeamType": 1
+          },
           "AwayTeamAggregateScore": null,
           "AwayTeamPenaltyScore": null,
           "AwayTeamScore": null,
           "Date": "2026-07-12T01:00:00Z",
-          "HomeTeam": null,
+          "HomeTeam": {
+            "Abbreviation": "ARG",
+            "AgeType": 7,
+            "FootballType": 0,
+            "Gender": 1,
+            "IdAssociation": "ARG",
+            "IdCountry": "ARG",
+            "IdTeam": "43922",
+            "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/ARG",
+            "Score": null,
+            "ShortClubName": "Argentina",
+            "Side": null,
+            "Tactics": null,
+            "TeamName": [
+              {
+                "Description": "Argentina",
+                "Locale": "en-GB"
+              }
+            ],
+            "TeamType": 1
+          },
           "HomeTeamAggregateScore": null,
           "HomeTeamPenaltyScore": null,
           "HomeTeamScore": null,
@@ -9995,12 +10375,52 @@
           "Winner": null
         },
         {
-          "AwayTeam": null,
+          "AwayTeam": {
+            "Abbreviation": "BEL",
+            "AgeType": 7,
+            "FootballType": 0,
+            "Gender": 1,
+            "IdAssociation": "BEL",
+            "IdCountry": "BEL",
+            "IdTeam": "43935",
+            "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/BEL",
+            "Score": null,
+            "ShortClubName": "Belgium",
+            "Side": null,
+            "Tactics": null,
+            "TeamName": [
+              {
+                "Description": "Belgium",
+                "Locale": "en-GB"
+              }
+            ],
+            "TeamType": 1
+          },
           "AwayTeamAggregateScore": null,
           "AwayTeamPenaltyScore": null,
           "AwayTeamScore": null,
           "Date": "2026-07-10T19:00:00Z",
-          "HomeTeam": null,
+          "HomeTeam": {
+            "Abbreviation": "ESP",
+            "AgeType": 7,
+            "FootballType": 0,
+            "Gender": 1,
+            "IdAssociation": "ESP",
+            "IdCountry": "ESP",
+            "IdTeam": "43969",
+            "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/ESP",
+            "Score": null,
+            "ShortClubName": "Spain",
+            "Side": null,
+            "Tactics": null,
+            "TeamName": [
+              {
+                "Description": "Spain",
+                "Locale": "en-GB"
+              }
+            ],
+            "TeamType": 1
+          },
           "HomeTeamAggregateScore": null,
           "HomeTeamPenaltyScore": null,
           "HomeTeamScore": null,
@@ -10059,12 +10479,52 @@
           "Winner": null
         },
         {
-          "AwayTeam": null,
+          "AwayTeam": {
+            "Abbreviation": "ENG",
+            "AgeType": 7,
+            "FootballType": 0,
+            "Gender": 1,
+            "IdAssociation": "ENG",
+            "IdCountry": "ENG",
+            "IdTeam": "43942",
+            "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/ENG",
+            "Score": null,
+            "ShortClubName": "England",
+            "Side": null,
+            "Tactics": null,
+            "TeamName": [
+              {
+                "Description": "England",
+                "Locale": "en-GB"
+              }
+            ],
+            "TeamType": 1
+          },
           "AwayTeamAggregateScore": null,
           "AwayTeamPenaltyScore": null,
           "AwayTeamScore": null,
           "Date": "2026-07-11T21:00:00Z",
-          "HomeTeam": null,
+          "HomeTeam": {
+            "Abbreviation": "NOR",
+            "AgeType": 7,
+            "FootballType": 0,
+            "Gender": 1,
+            "IdAssociation": "NOR",
+            "IdCountry": "NOR",
+            "IdTeam": "43961",
+            "PictureUrl": "https://api.fifa.com/api/v3/picture/flags-{format}-{size}/NOR",
+            "Score": null,
+            "ShortClubName": "Norway",
+            "Side": null,
+            "Tactics": null,
+            "TeamName": [
+              {
+                "Description": "Norway",
+                "Locale": "en-GB"
+              }
+            ],
+            "TeamType": 1
+          },
           "HomeTeamAggregateScore": null,
           "HomeTeamPenaltyScore": null,
           "HomeTeamScore": null,

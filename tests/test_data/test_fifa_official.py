@@ -1,4 +1,6 @@
 from src.data.fifa_official import (
+    _extract_completed_round_of_16_results,
+    _extract_completed_round_of_32_results,
     _build_team_stats_story_query,
     _extract_story_items,
     _normalize_scraped_team_stats_rows,
@@ -89,3 +91,73 @@ def test_normalize_scraped_team_stats_rows_maps_headers_and_team_overrides() -> 
     assert rows[0]["average_speed_km_h"] == 6.23
     assert rows[0]["xg_efficiency"] == "1.53x"
     assert rows[0]["total_distance_m"] == 358610.48
+
+
+def test_extract_completed_round_of_32_results_tracks_penalty_winners() -> None:
+    payload = {
+        "KnockoutStages": [
+            {
+                "Name": [{"Description": "Round of 32"}],
+                "Matches": [
+                    {
+                        "MatchStatus": 0,
+                        "MatchNumber": 74,
+                        "Date": "2026-06-29T20:30:00Z",
+                        "Winner": "away-id",
+                        "HomeTeam": {
+                            "IdTeam": "home-id",
+                            "Score": 1,
+                            "TeamName": [{"Description": "Germany"}],
+                        },
+                        "AwayTeam": {
+                            "IdTeam": "away-id",
+                            "Score": 1,
+                            "TeamName": [{"Description": "Paraguay"}],
+                        },
+                    }
+                ],
+            }
+        ]
+    }
+
+    rows = _extract_completed_round_of_32_results(payload)
+
+    assert len(rows) == 1
+    assert rows[0]["match_id"] == "R32-2"
+    assert rows[0]["winner"] == "Paraguay"
+    assert rows[0]["advancement_method"] == "penalties"
+
+
+def test_extract_completed_round_of_16_results_tracks_penalty_winners() -> None:
+    payload = {
+        "KnockoutStages": [
+            {
+                "Name": [{"Description": "Round of 16"}],
+                "Matches": [
+                    {
+                        "MatchStatus": 0,
+                        "MatchNumber": 96,
+                        "Date": "2026-07-08T02:00:00Z",
+                        "Winner": "home-id",
+                        "HomeTeam": {
+                            "IdTeam": "home-id",
+                            "Score": 0,
+                            "TeamName": [{"Description": "Switzerland"}],
+                        },
+                        "AwayTeam": {
+                            "IdTeam": "away-id",
+                            "Score": 0,
+                            "TeamName": [{"Description": "Colombia"}],
+                        },
+                    }
+                ],
+            }
+        ]
+    }
+
+    rows = _extract_completed_round_of_16_results(payload)
+
+    assert len(rows) == 1
+    assert rows[0]["match_id"] == "R16-8"
+    assert rows[0]["winner"] == "Switzerland"
+    assert rows[0]["advancement_method"] == "penalties"

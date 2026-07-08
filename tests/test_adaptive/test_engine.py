@@ -44,3 +44,29 @@ def test_build_snapshot_from_results_file_preserves_baseline_state(tmp_path: Pat
     assert response["snapshot_id"] == "001_after_test_batch"
     assert response["matches_ingested"] == 1
     assert refreshed_engine.state_machine.resolved_results() == {}
+
+
+def test_latest_snapshot_with_descriptor_prefers_newest_entry() -> None:
+    engine = AdaptiveEngine(iterations=25)
+    engine._snapshot_details = lambda: [  # type: ignore[method-assign]
+        {"snapshot_id": "001_after_round_of_32_complete", "descriptor": "after_round_of_32_complete"},
+        {"snapshot_id": "002_other", "descriptor": "other"},
+        {"snapshot_id": "003_after_round_of_32_complete", "descriptor": "after_round_of_32_complete"},
+    ]
+
+    latest = engine._latest_snapshot_with_descriptor("after_round_of_32_complete")  # noqa: SLF001
+
+    assert latest is not None
+    assert latest["snapshot_id"] == "003_after_round_of_32_complete"
+
+
+def test_resolve_knockout_match_id_falls_back_to_reversed_teams() -> None:
+    engine = AdaptiveEngine(iterations=25)
+    engine.state_machine._state = {  # type: ignore[attr-defined]
+        "R16-5": {"home_team": "Brazil", "away_team": "Norway"},
+    }
+
+    match_id, reversed_teams = engine._resolve_knockout_match_id("R16-", "Norway", "Brazil")  # noqa: SLF001
+
+    assert match_id == "R16-5"
+    assert reversed_teams is True

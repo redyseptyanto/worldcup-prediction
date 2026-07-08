@@ -1,0 +1,17 @@
+match_id,annex_c,match_number,date,home_team,away_team,home_goals,away_goals,winner,advancement_method
+R32-1,M73,73,2026-06-28T19:00:00Z,South Africa,Canada,0,1,Canada,regulation
+R32-2,M74,74,2026-06-29T20:30:00Z,Germany,Paraguay,1,1,Paraguay,penalties
+R32-3,M75,75,2026-06-30T01:00:00Z,Netherlands,Morocco,1,1,Morocco,penalties
+R32-4,M76,76,2026-06-29T17:00:00Z,Brazil,Japan,2,1,Brazil,regulation
+R32-5,M77,77,2026-06-30T21:00:00Z,France,Sweden,3,0,France,regulation
+R32-6,M78,78,2026-06-30T17:00:00Z,Ivory Coast,Norway,1,2,Norway,regulation
+R32-7,M79,79,2026-07-01T02:00:00Z,Mexico,Ecuador,2,0,Mexico,regulation
+R32-8,M80,80,2026-07-01T16:00:00Z,England,DR Congo,2,1,England,regulation
+R32-9,M81,81,2026-07-02T00:00:00Z,United States,Bosnia and Herzegovina,2,0,United States,regulation
+R32-10,M82,82,2026-07-01T20:00:00Z,Belgium,Senegal,3,2,Belgium,regulation
+R32-11,M83,83,2026-07-02T23:00:00Z,Portugal,Croatia,2,1,Portugal,regulation
+R32-12,M84,84,2026-07-02T19:00:00Z,Spain,Austria,3,0,Spain,regulation
+R32-13,M85,85,2026-07-03T03:00:00Z,Switzerland,Algeria,2,0,Switzerland,regulation
+R32-14,M86,86,2026-07-03T22:00:00Z,Argentina,Cape Verde,3,2,Argentina,regulation
+R32-15,M87,87,2026-07-04T01:30:00Z,Colombia,Ghana,1,0,Colombia,regulation
+R32-16,M88,88,2026-07-03T18:00:00Z,Australia,Egypt,1,1,Egypt,penalties

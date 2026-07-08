@@ -18,6 +18,8 @@ from src.config import (
     FIFA_OFFICIAL_TEAM_STATS_CATALOG_FILE,
     FIFA_OFFICIAL_TEAM_STATS_FILE,
     FIFA_OFFICIAL_TEAM_STATS_RAW_FILE,
+    REAL_ROUND_OF_16_RESULTS_FILE,
+    REAL_ROUND_OF_32_RESULTS_FILE,
 )
 from src.utils.helpers import load_json, save_json, utc_timestamp
 
@@ -51,6 +53,59 @@ FIFA_GAMEDAY_HEADERS = {
 }
 FIFA_TEAM_STATS_BROWSER_CHANNELS = ("chrome", "msedge")
 FIFA_TEAM_STATS_BROWSER_WAIT_MS = 3000
+
+ANNEX_TO_R32_MATCH_ID = {
+    "M73": "R32-1",
+    "M74": "R32-2",
+    "M75": "R32-3",
+    "M76": "R32-4",
+    "M77": "R32-5",
+    "M78": "R32-6",
+    "M79": "R32-7",
+    "M80": "R32-8",
+    "M81": "R32-9",
+    "M82": "R32-10",
+    "M83": "R32-11",
+    "M84": "R32-12",
+    "M85": "R32-13",
+    "M86": "R32-14",
+    "M87": "R32-15",
+    "M88": "R32-16",
+}
+ANNEX_TO_R16_MATCH_ID = {
+    "M89": "R16-1",
+    "M90": "R16-2",
+    "M91": "R16-3",
+    "M92": "R16-4",
+    "M93": "R16-5",
+    "M94": "R16-6",
+    "M95": "R16-7",
+    "M96": "R16-8",
+}
+_COMPLETED_ROUND_OF_32_COLUMNS = [
+    "match_id",
+    "annex_c",
+    "match_number",
+    "date",
+    "home_team",
+    "away_team",
+    "home_goals",
+    "away_goals",
+    "winner",
+    "advancement_method",
+]
+_COMPLETED_ROUND_OF_16_COLUMNS = [
+    "match_id",
+    "annex_c",
+    "match_number",
+    "date",
+    "home_team",
+    "away_team",
+    "home_goals",
+    "away_goals",
+    "winner",
+    "advancement_method",
+]
 
 TEAM_NAME_OVERRIDES = {
     "Bosnia and Herzegovina": "Bosnia and Herzegovina",
@@ -202,6 +257,130 @@ def _parse_round_of_32(payload: dict[str, Any]) -> pd.DataFrame:
             }
         )
     return pd.DataFrame(rows).sort_values("match_number").reset_index(drop=True)
+
+
+def _extract_completed_round_of_32_results(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    knockout_stages = payload.get("KnockoutStages") or []
+    round_of_32 = next(
+        (
+            stage
+            for stage in knockout_stages
+            if ((stage.get("Name") or [{}])[0]).get("Description") == "Round of 32"
+        ),
+        None,
+    )
+    if round_of_32 is None:
+        return rows
+
+    for match in round_of_32.get("Matches", []):
+        if match.get("MatchStatus") != 0:
+            continue
+        home_team = match.get("HomeTeam") or {}
+        away_team = match.get("AwayTeam") or {}
+        home_name = canonical_team_name(((home_team.get("TeamName") or [{}])[0]).get("Description", "TBD"))
+        away_name = canonical_team_name(((away_team.get("TeamName") or [{}])[0]).get("Description", "TBD"))
+        home_goals = home_team.get("Score")
+        away_goals = away_team.get("Score")
+        match_number = int(match.get("MatchNumber", 0) or 0)
+        annex_c = f"M{match_number}"
+        match_id = ANNEX_TO_R32_MATCH_ID.get(annex_c)
+        if match_id is None or home_goals is None or away_goals is None:
+            continue
+
+        winner = None
+        advancement_method = "regulation"
+        if home_goals > away_goals:
+            winner = home_name
+        elif away_goals > home_goals:
+            winner = away_name
+        else:
+            winner_id = match.get("Winner")
+            if winner_id == home_team.get("IdTeam"):
+                winner = home_name
+            elif winner_id == away_team.get("IdTeam"):
+                winner = away_name
+            if winner is not None:
+                advancement_method = "penalties"
+
+        rows.append(
+            {
+                "match_id": match_id,
+                "annex_c": annex_c,
+                "match_number": match_number,
+                "date": match.get("Date", ""),
+                "home_team": home_name,
+                "away_team": away_name,
+                "home_goals": int(home_goals),
+                "away_goals": int(away_goals),
+                "winner": winner,
+                "advancement_method": advancement_method,
+            }
+        )
+
+    return sorted(rows, key=lambda row: row["match_number"])
+
+
+def _extract_completed_round_of_16_results(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    knockout_stages = payload.get("KnockoutStages") or []
+    round_of_16 = next(
+        (
+            stage
+            for stage in knockout_stages
+            if ((stage.get("Name") or [{}])[0]).get("Description") == "Round of 16"
+        ),
+        None,
+    )
+    if round_of_16 is None:
+        return rows
+
+    for match in round_of_16.get("Matches", []):
+        if match.get("MatchStatus") != 0:
+            continue
+        home_team = match.get("HomeTeam") or {}
+        away_team = match.get("AwayTeam") or {}
+        home_name = canonical_team_name(((home_team.get("TeamName") or [{}])[0]).get("Description", "TBD"))
+        away_name = canonical_team_name(((away_team.get("TeamName") or [{}])[0]).get("Description", "TBD"))
+        home_goals = home_team.get("Score")
+        away_goals = away_team.get("Score")
+        match_number = int(match.get("MatchNumber", 0) or 0)
+        annex_c = f"M{match_number}"
+        match_id = ANNEX_TO_R16_MATCH_ID.get(annex_c)
+        if match_id is None or home_goals is None or away_goals is None:
+            continue
+
+        winner = None
+        advancement_method = "regulation"
+        if home_goals > away_goals:
+            winner = home_name
+        elif away_goals > home_goals:
+            winner = away_name
+        else:
+            winner_id = match.get("Winner")
+            if winner_id == home_team.get("IdTeam"):
+                winner = home_name
+            elif winner_id == away_team.get("IdTeam"):
+                winner = away_name
+            if winner is not None:
+                advancement_method = "penalties"
+
+        rows.append(
+            {
+                "match_id": match_id,
+                "annex_c": annex_c,
+                "match_number": match_number,
+                "date": match.get("Date", ""),
+                "home_team": home_name,
+                "away_team": away_name,
+                "home_goals": int(home_goals),
+                "away_goals": int(away_goals),
+                "winner": winner,
+                "advancement_method": advancement_method,
+            }
+        )
+
+    return sorted(rows, key=lambda row: row["match_number"])
 
 
 def _parse_team_stats_catalog(payload: dict[str, Any]) -> dict[str, Any]:
@@ -714,6 +893,46 @@ def load_official_round_of_32() -> pd.DataFrame:
             columns=["annex_c", "match_number", "date", "home_team", "away_team", "home_path", "away_path"]
         )
     return pd.read_csv(FIFA_OFFICIAL_ROUND_OF_32_FILE)
+
+
+def load_official_completed_round_of_32_results(
+    *,
+    refresh: bool = False,
+    save_to_csv: bool = False,
+) -> pd.DataFrame:
+    """Load completed Round-of-32 results from the official FIFA bracket feed."""
+
+    if refresh or not FIFA_OFFICIAL_BRACKET_FILE.exists():
+        refresh_official_fifa_data()
+
+    payload = load_json(FIFA_OFFICIAL_BRACKET_FILE, default={}) or {}
+    frame = pd.DataFrame(_extract_completed_round_of_32_results(payload), columns=_COMPLETED_ROUND_OF_32_COLUMNS)
+    if frame.empty:
+        return pd.DataFrame(columns=_COMPLETED_ROUND_OF_32_COLUMNS)
+    frame = frame.sort_values("match_number").reset_index(drop=True)
+    if save_to_csv:
+        frame.to_csv(REAL_ROUND_OF_32_RESULTS_FILE, index=False)
+    return frame
+
+
+def load_official_completed_round_of_16_results(
+    *,
+    refresh: bool = False,
+    save_to_csv: bool = False,
+) -> pd.DataFrame:
+    """Load completed Round-of-16 results from the official FIFA bracket feed."""
+
+    if refresh or not FIFA_OFFICIAL_BRACKET_FILE.exists():
+        refresh_official_fifa_data()
+
+    payload = load_json(FIFA_OFFICIAL_BRACKET_FILE, default={}) or {}
+    frame = pd.DataFrame(_extract_completed_round_of_16_results(payload), columns=_COMPLETED_ROUND_OF_16_COLUMNS)
+    if frame.empty:
+        return pd.DataFrame(columns=_COMPLETED_ROUND_OF_16_COLUMNS)
+    frame = frame.sort_values("match_number").reset_index(drop=True)
+    if save_to_csv:
+        frame.to_csv(REAL_ROUND_OF_16_RESULTS_FILE, index=False)
+    return frame
 
 
 def build_tournament_form_factors(standings: pd.DataFrame) -> pd.DataFrame:

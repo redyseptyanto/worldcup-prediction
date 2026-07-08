@@ -13,7 +13,15 @@ from pathlib import Path
 # Ensure the root directory is in sys.path so 'src' can be imported
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
-from src.config import ENSEMBLE_MODEL_FILE, FLAGS_DIR
+import src.config as project_config
+
+ENSEMBLE_MODEL_FILE = project_config.ENSEMBLE_MODEL_FILE
+FLAGS_DIR = project_config.FLAGS_DIR
+REAL_GROUP_STAGE_RESULTS_FILE = getattr(
+    project_config,
+    "REAL_GROUP_STAGE_RESULTS_FILE",
+    project_config.SETTINGS.external_dir / "real_group_stage_results.csv",
+)
 from src.models.train import current_model_metadata
 from src.utils.helpers import load_json
 
@@ -68,6 +76,64 @@ def _build_post_group_snapshot(results_file: Path) -> dict[str, Any]:
     )
 
 
+def _build_post_round_of_32_snapshot() -> dict[str, Any]:
+    """Create or refresh the comparison snapshot backed by official Round-of-32 results."""
+
+    from src.adaptive.engine import AdaptiveEngine
+
+    return AdaptiveEngine(iterations=500).build_snapshot_after_round_of_32(
+        group_results_file=str(REAL_GROUP_STAGE_RESULTS_FILE),
+        descriptor="after_round_of_32_complete",
+        refresh_official_data=True,
+    )
+
+
+def _build_post_round_of_16_snapshot() -> dict[str, Any]:
+    """Create or refresh the comparison snapshot backed by official Round-of-16 results."""
+
+    from src.adaptive.engine import AdaptiveEngine
+
+    return AdaptiveEngine(iterations=500).build_snapshot_after_round_of_16(
+        group_results_file=str(REAL_GROUP_STAGE_RESULTS_FILE),
+        descriptor="after_round_of_16_complete",
+        refresh_official_data=True,
+    )
+
+
+def _cached_round_of_32_results() -> pd.DataFrame:
+    """Load cached official Round-of-32 results when available."""
+
+    import src.data.fifa_official as fifa_official
+
+    try:
+        loader = getattr(fifa_official, "load_official_completed_round_of_32_results", None)
+        if callable(loader):
+            return loader(refresh=False, save_to_csv=False)
+        fallback_path = project_config.SETTINGS.external_dir / "real_round_of_32_results.csv"
+        if fallback_path.exists():
+            return pd.read_csv(fallback_path)
+        return pd.DataFrame()
+    except Exception:
+        return pd.DataFrame()
+
+
+def _cached_round_of_16_results() -> pd.DataFrame:
+    """Load cached official Round-of-16 results when available."""
+
+    import src.data.fifa_official as fifa_official
+
+    try:
+        loader = getattr(fifa_official, "load_official_completed_round_of_16_results", None)
+        if callable(loader):
+            return loader(refresh=False, save_to_csv=False)
+        fallback_path = project_config.SETTINGS.external_dir / "real_round_of_16_results.csv"
+        if fallback_path.exists():
+            return pd.read_csv(fallback_path)
+        return pd.DataFrame()
+    except Exception:
+        return pd.DataFrame()
+
+
 def _snapshot_label(snapshot: dict[str, Any]) -> str:
     model_signature = ((snapshot.get("model_metadata") or {}).get("signature")) or "unknown"
     resolved_count = len(snapshot.get("resolved_matches", []))
@@ -76,6 +142,13 @@ def _snapshot_label(snapshot: dict[str, Any]) -> str:
 
 def _find_snapshot(snapshot_id: str, snapshots: list[dict[str, Any]]) -> dict[str, Any] | None:
     return next((snapshot for snapshot in snapshots if snapshot["snapshot_id"] == snapshot_id), None)
+
+
+def _latest_snapshot_by_descriptor(snapshots: list[dict[str, Any]], descriptor: str) -> dict[str, Any] | None:
+    for snapshot in reversed(snapshots):
+        if snapshot["descriptor"] == descriptor:
+            return snapshot
+    return None
 
 
 def _flatten_snapshot_matches(bracket_data: dict[str, Any]) -> list[dict[str, Any]]:
@@ -1465,8 +1538,14 @@ def main() -> None:
         _ensure_baseline_snapshot()
         snapshots = list_snapshot_timeline()
 
-    real_group_results_file = Path("data/external/real_group_stage_results.csv")
-    post_group_snapshot = next((snapshot for snapshot in snapshots if snapshot["descriptor"] == "after_group_stage_complete"), None)
+    real_group_results_file = REAL_GROUP_STAGE_RESULTS_FILE
+    post_group_snapshot = _latest_snapshot_by_descriptor(snapshots, "after_group_stage_complete")
+    post_round_of_32_snapshot = _latest_snapshot_by_descriptor(snapshots, "after_round_of_32_complete")
+    post_round_of_16_snapshot = _latest_snapshot_by_descriptor(snapshots, "after_round_of_16_complete")
+    cached_round_of_32_results = _cached_round_of_32_results()
+    cached_round_of_16_results = _cached_round_of_16_results()
+    completed_round_of_32_matches = len(cached_round_of_32_results)
+    completed_round_of_16_matches = len(cached_round_of_16_results)
 
     col1, col2 = st.columns([0.7, 0.3])
     with col1:
@@ -1494,7 +1573,63 @@ def main() -> None:
                     f"Snapshot `{result['snapshot_id']}` is ready. Baseline `{result['baseline_snapshot']}` was preserved for comparison."
                 )
                 st.rerun()
-        
+
+    if completed_round_of_32_matches:
+        action_col1, action_col2 = st.columns([0.72, 0.28])
+        with action_col1:
+            if post_round_of_32_snapshot is None:
+                if completed_round_of_32_matches >= 16:
+                    st.info(
+                        "Official Round of 32 results are cached. Build the knockout snapshot to recalibrate the Round of 16 and beyond."
+                    )
+                else:
+                    st.info(
+                        f"Cached official Round of 32 results cover {completed_round_of_32_matches}/16 matches. Refresh again once the round is complete to rebuild forward predictions."
+                    )
+            else:
+                resolved_count = len(post_round_of_32_snapshot.get("resolved_matches", []))
+                st.success(
+                    f"Knockout snapshot `{post_round_of_32_snapshot['snapshot_id']}` is available with {resolved_count} resolved matches."
+                )
+        with action_col2:
+            if completed_round_of_32_matches >= 16:
+                button_label = "Build Post-R32 Snapshot" if post_round_of_32_snapshot is None else "Rebuild Post-R32 Snapshot"
+                if st.button(button_label, use_container_width=True, key="build_post_round_of_32_snapshot"):
+                    with st.spinner("Building knockout snapshot from official Round of 32 results..."):
+                        result = _build_post_round_of_32_snapshot()
+                    st.success(
+                        f"Snapshot `{result['snapshot_id']}` is ready with {result['round_of_32_matches_ingested']} Round of 32 results."
+                    )
+                    st.rerun()
+
+    if completed_round_of_16_matches:
+        action_col1, action_col2 = st.columns([0.72, 0.28])
+        with action_col1:
+            if post_round_of_16_snapshot is None:
+                if completed_round_of_16_matches >= 8:
+                    st.info(
+                        "Official Round of 16 results are cached. Build the post-R16 snapshot to recalibrate the quarter-finals and beyond."
+                    )
+                else:
+                    st.info(
+                        f"Cached official Round of 16 results cover {completed_round_of_16_matches}/8 matches. Refresh again once the round is complete to rebuild forward predictions."
+                    )
+            else:
+                resolved_count = len(post_round_of_16_snapshot.get("resolved_matches", []))
+                st.success(
+                    f"Post-R16 snapshot `{post_round_of_16_snapshot['snapshot_id']}` is available with {resolved_count} resolved matches."
+                )
+        with action_col2:
+            if completed_round_of_16_matches >= 8:
+                button_label = "Build Post-R16 Snapshot" if post_round_of_16_snapshot is None else "Rebuild Post-R16 Snapshot"
+                if st.button(button_label, use_container_width=True, key="build_post_round_of_16_snapshot"):
+                    with st.spinner("Building knockout snapshot from official Round of 16 results..."):
+                        result = _build_post_round_of_16_snapshot()
+                    st.success(
+                        f"Snapshot `{result['snapshot_id']}` is ready with {result['round_of_16_matches_ingested']} Round of 16 results."
+                    )
+                    st.rerun()
+
     selected_snapshot_id = snapshots[-1]["snapshot_id"] if snapshots else ""
     selected_snapshot = _find_snapshot(selected_snapshot_id, snapshots) if snapshots else None
     if snapshots:
